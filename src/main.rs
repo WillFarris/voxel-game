@@ -1,61 +1,28 @@
-mod cube;
-mod vertex;
-mod teapot;
 mod camera;
+mod cube;
+mod teapot;
+mod vectormath;
+mod vertex;
 
-
-use teapot::Normal;
-use teapot::Vertex;
+use camera::*;
+use teapot::*;
 
 use std::fs::File;
 use std::io::prelude::*;
-use std::io::Cursor;
 use std::path::Path;
 
 extern crate glium;
-use glium::{DrawParameters, IndexBuffer, Program, Surface, VertexBuffer, glutin::{self, event::VirtualKeyCode}, uniform};
+use glium::{
+    glutin::{self, event::VirtualKeyCode},
+    uniform, DrawParameters, IndexBuffer, Program, Surface, VertexBuffer,
+};
 
 extern crate image;
 
 const SCENE_LIGHT: [f32; 3] = [3.0, 3.0, -2.0];
 
-
-fn view_matrix(position: &[f32; 3], direction: &[f32; 3], up: &[f32; 3]) -> [[f32; 4]; 4] {
-    let f = {
-        let f = direction;
-        let len = f[0] * f[0] + f[1] * f[1] + f[2] * f[2];
-        let len = len.sqrt();
-        [f[0] / len, f[1] / len, f[2] / len]
-    };
-
-    let s = [up[1] * f[2] - up[2] * f[1],
-             up[2] * f[0] - up[0] * f[2],
-             up[0] * f[1] - up[1] * f[0]];
-
-    let s_norm = {
-        let len = s[0] * s[0] + s[1] * s[1] + s[2] * s[2];
-        let len = len.sqrt();
-        [s[0] / len, s[1] / len, s[2] / len]
-    };
-
-    let u = [f[1] * s_norm[2] - f[2] * s_norm[1],
-             f[2] * s_norm[0] - f[0] * s_norm[2],
-             f[0] * s_norm[1] - f[1] * s_norm[0]];
-
-    let p = [-position[0] * s_norm[0] - position[1] * s_norm[1] - position[2] * s_norm[2],
-             -position[0] * u[0] - position[1] * u[1] - position[2] * u[2],
-             -position[0] * f[0] - position[1] * f[1] - position[2] * f[2]];
-
-    [
-        [s_norm[0], u[0], f[0], 0.0],
-        [s_norm[1], u[1], f[1], 0.0],
-        [s_norm[2], u[2], f[2], 0.0],
-        [p[0], p[1], p[2], 1.0],
-    ]
-}
-
 struct Teapot {
-    transform_matrix: [[f32;4];4],
+    transform_matrix: [[f32; 4]; 4],
     shader: glium::Program,
     v_positions: VertexBuffer<Vertex>,
     v_normals: VertexBuffer<Normal>,
@@ -74,7 +41,12 @@ impl Teapot {
             shader,
             v_positions: glium::VertexBuffer::new(display, &teapot::VERTICES).unwrap(),
             v_normals: glium::VertexBuffer::new(display, &teapot::NORMALS).unwrap(),
-            v_indices: glium::IndexBuffer::new(display, glium::index::PrimitiveType::TrianglesList, &teapot::INDICES).unwrap(),
+            v_indices: glium::IndexBuffer::new(
+                display,
+                glium::index::PrimitiveType::TrianglesList,
+                &teapot::INDICES,
+            )
+            .unwrap(),
         }
     }
 
@@ -84,8 +56,21 @@ impl Teapot {
         self.transform_matrix[3][2] += translation[2];
     }
 
-    fn draw(&self, target: &mut glium::Frame, params: &DrawParameters) {
-        target.draw((&self.v_positions, &self.v_normals), &self.v_indices,&self.shader, &uniform! { matrix: self.transform_matrix, perspective: camera::perspective_matrix(&target), light: SCENE_LIGHT}, &params).unwrap();
+    fn draw(&self, target: &mut glium::Frame, params: &DrawParameters, camera: &Camera) {
+        target
+            .draw(
+                (&self.v_positions, &self.v_normals),
+                &self.v_indices,
+                &self.shader,
+                &uniform! {
+                    model_matrix: self.transform_matrix,
+                    view_matrix: camera.view_matrix(),
+                    perspective_matrix: camera::perspective_matrix(&target),
+                    light: SCENE_LIGHT
+                },
+                &params,
+            )
+            .unwrap();
     }
 }
 
@@ -123,7 +108,7 @@ fn main() {
         Err(why) => panic!("Could not read file: {}", why),
         Ok(_) => (),
     }
-    // Ownership of the shader will be given to pot    
+    // Ownership of the shader will be given to pot
     let teapot_shader = glium::Program::from_source(
         &display,
         tri_vertex_shader_str.as_str(),
@@ -132,16 +117,15 @@ fn main() {
     )
     .unwrap();
 
-    let mut pot = Teapot::new([1.0, 1.0, 1.0], &display, teapot_shader);
+    let pot = Teapot::new([0.0, 0.0, 5.0], &display, teapot_shader);
+    let mut camera = Camera::new(&[0.0, 0.0, 0.0], &[0.0, 0.0, 5.0]);
 
-    let mut t: f32 = 0.0;
     event_loop.run(move |ev, _, control_flow| {
-        t += 0.001;
         let mut target = display.draw();
 
         target.clear_color_and_depth((0.1, 0.15, 0.9, 1.0), 1.0);
 
-        pot.draw(&mut target, &params);
+        pot.draw(&mut target, &params, &camera);
 
         target.finish().unwrap();
 
@@ -157,22 +141,31 @@ fn main() {
                 }
                 _ => return,
             },
-            glutin::event::Event::DeviceEvent {event, ..} => match event {
+            glutin::event::Event::DeviceEvent { event, .. } => match event {
                 glutin::event::DeviceEvent::Key(k) => match k.virtual_keycode {
                     _ => {
                         if let Some(code) = k.virtual_keycode {
                             match code {
-                                VirtualKeyCode::W =>      pot.translate([0.0,   0.0,  0.2]),
-                                VirtualKeyCode::S =>      pot.translate([0.0,   0.0, -0.2]),
-                                VirtualKeyCode::A =>      pot.translate([-0.2,  0.0,  0.0]),
-                                VirtualKeyCode::D =>      pot.translate([0.2,   0.0,  0.0]),
-                                VirtualKeyCode::Space =>  pot.translate([0.0,   0.2,  0.0]),
-                                VirtualKeyCode::LShift => pot.translate([0.0,  -0.2,  0.0]),
-                                _ => ()
+                                VirtualKeyCode::W => camera.move_direction(&[0.0, 0.0, 1.0]),
+                                VirtualKeyCode::S => camera.move_direction(&[0.0, 0.0, -1.0]),
+                                VirtualKeyCode::A => camera.move_direction(&[-1.0, 0.0, 0.0]),
+                                VirtualKeyCode::D => camera.move_direction(&[1.0, 0.0, 0.0]),
+                                VirtualKeyCode::Space => camera.move_direction(&[0.0, 1.0, 0.0]),
+                                VirtualKeyCode::LShift => camera.move_direction(&[0.0, -1.0, 0.0]),
+
+                                VirtualKeyCode::Up => camera.translate(&[0.0, 0.01, 0.0]),
+                                VirtualKeyCode::Down => camera.translate(&[0.0, -0.01, 0.0]),
+
+                                _ => (),
                             }
                         }
                     }
-                }
+                },
+                glutin::event::DeviceEvent::Motion { axis, value } => match axis {
+                    0 => camera.rotate_on_y_axis(value as f32 * 0.01),
+                    1 => camera.rotate_on_x_axis(value as f32 * 0.01),
+                    _ => {}
+                },
                 _ => {}
             },
             _ => (),

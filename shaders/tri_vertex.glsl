@@ -11,6 +11,6 @@ uniform mat4 perspective_matrix;
 out vec3 v_normal;
 
 void main() {
-    v_normal = transpose(inverse(mat3(view_matrix))) * normal;
+    v_normal = (model_matrix * vec4(normal, 1.0)).xyz;//transpose(inverse(mat3(view_matrix))) * normal;
     gl_Position = perspective_matrix * view_matrix * model_matrix * vec4(position, 1.0);
 }

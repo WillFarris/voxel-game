@@ -1,11 +1,5 @@
+use crate::vertex::{Normal, Vertex};
 use glium::implement_vertex;
-
-#[derive(Copy, Clone)]
-pub struct Vertex {
-    position: (f32, f32, f32),
-}
-
-implement_vertex!(Vertex, position);
 
 pub const VERTICES: [Vertex; 531] = [
     Vertex {
@@ -1603,13 +1597,6 @@ pub const VERTICES: [Vertex; 531] = [
         position: (34.9202, 28.3457, -15.6121),
     },
 ];
-
-#[derive(Copy, Clone)]
-pub struct Normal {
-    normal: (f32, f32, f32),
-}
-
-implement_vertex!(Normal, normal);
 
 pub const NORMALS: [Normal; 531] = [
     Normal {

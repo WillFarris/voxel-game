@@ -23,8 +23,6 @@ impl Camera {
     }
 
     pub fn view_matrix(&self) -> [[f32; 4]; 4] {
-        //self.calculate_normals();
-
         let p = [
             -self.position[0] * self.right[0]
                 - self.position[1] * self.right[1]

@@ -95,9 +95,9 @@ const CUBE_NORMALS: [Normal; 36] = [
     Normal { normal: (-1.0,  0.0,  0.0) },   // Front-bottom-left
     Normal { normal: (-1.0,  0.0,  0.0) },   // Back-bottom-left
 
-    Normal { normal: (-1.0,  0.0,  0.0) },   // Front-bottom-left
-    Normal { normal: (-1.0,  0.0,  0.0) },   // Back-bottom-left
-    Normal { normal: ( 1.0,  0.0,  0.0) },   // Back-bottom-right
+    Normal { normal: ( 0.0, -1.0,  0.0) },   // Front-bottom-left
+    Normal { normal: ( 0.0, -1.0,  0.0) },   // Back-bottom-left
+    Normal { normal: ( 0.0, -1.0,  0.0) },   // Back-bottom-right
 
     Normal { normal: ( 0.0,  0.0, -1.0) },   // Back-bottom-left
     Normal { normal: ( 0.0,  0.0, -1.0) },   // Back-bottom-right
@@ -108,18 +108,24 @@ const CUBE_NORMALS: [Normal; 36] = [
     Normal { normal: ( 0.0,  0.0, -1.0) }     // Back-top-right
 ];
 
+const CUBE_COLLISION_BOX: [[f32; 3]; 2] = [
+    [-1.0f32; 3],
+    [1.0f32; 3],
+];
+
 pub struct Cube {
     position: [f32; 3],
-
+    color: [f32; 3],
     texture: Option<glium::Texture2d>,
 
-    model_matrix: [[f32; 4]; 4],
+    pub model_matrix: [[f32; 4]; 4],
     v_positions: VertexBuffer<Vertex>,
     v_normals: VertexBuffer<Normal>,
+    c_bounding: &'static [[f32; 3]; 2],
 }
 
 impl Cube {
-    pub fn new(position: [f32; 3], display: &Display, texture: Option<Texture2d>) -> Self {
+    pub fn new(position: [f32; 3], display: &Display, texture: Option<Texture2d>, color: [f32; 3]) -> Self {
         Self {
             position,
             model_matrix: [
@@ -129,8 +135,10 @@ impl Cube {
                 [position[0], position[1], position[2], 1.0],
             ],
             texture,
+            color,
             v_positions: glium::VertexBuffer::new(display, &CUBE_VERTICES).unwrap(),
             v_normals: glium::VertexBuffer::new(display, &CUBE_NORMALS).unwrap(),
+            c_bounding: &CUBE_COLLISION_BOX,
         }
     }
 
@@ -155,14 +163,13 @@ impl Cube {
             .draw(
                 (&self.v_positions, &self.v_normals),
                 glium::index::NoIndices(glium::index::PrimitiveType::TriangleStrip),
-                //&self.v_indices,
                 &shader,
                 &uniform! {
                     model_matrix: self.model_matrix,
                     view_matrix: camera.view_matrix(),
                     perspective_matrix: crate::camera::perspective_matrix(&target),
                     light: crate::SCENE_LIGHT,
-                    pot_color: [0.9, 0.1, 0.2f32],
+                    u_color: self.color,
                 },
                 &params,
             )

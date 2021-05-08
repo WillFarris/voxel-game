@@ -1,11 +1,10 @@
 mod camera;
 mod cube;
-mod teapot;
 mod vectormath;
 mod vertex;
 
 use camera::*;
-use teapot::*;
+use vectormath::quaternion_rotation_matrix;
 use vertex::*;
 
 use std::fs::File;
@@ -20,65 +19,7 @@ use glium::{
 
 extern crate image;
 
-const SCENE_LIGHT: [f32; 3] = [0.0, 0.0, 10.0];
-
-struct Teapot {
-    transform_matrix: [[f32; 4]; 4],
-    v_positions: VertexBuffer<Vertex>,
-    v_normals: VertexBuffer<Normal>,
-    v_indices: IndexBuffer<u16>,
-}
-
-impl Teapot {
-    fn new(position: [f32; 3], display: &glium::Display) -> Self {
-        Self {
-            transform_matrix: [
-                [0.01, 0.0, 0.0, 0.0],
-                [0.0, 0.01, 0.0, 0.0],
-                [0.0, 0.0, 0.01, 0.0],
-                [position[0], position[1], position[2], 1.0],
-            ],
-            v_positions: glium::VertexBuffer::new(display, &teapot::VERTICES).unwrap(),
-            v_normals: glium::VertexBuffer::new(display, &teapot::NORMALS).unwrap(),
-            v_indices: glium::IndexBuffer::new(
-                display,
-                glium::index::PrimitiveType::TrianglesList,
-                &teapot::INDICES,
-            )
-            .unwrap(),
-        }
-    }
-
-    fn translate(&mut self, translation: [f32; 3]) {
-        self.transform_matrix[3][0] += translation[0];
-        self.transform_matrix[3][1] += translation[1];
-        self.transform_matrix[3][2] += translation[2];
-    }
-
-    fn draw(
-        &self,
-        target: &mut glium::Frame,
-        params: &DrawParameters,
-        camera: &Camera,
-        shader: &Program,
-    ) {
-        target
-            .draw(
-                (&self.v_positions, &self.v_normals),
-                &self.v_indices,
-                shader,
-                &uniform! {
-                    model_matrix: self.transform_matrix,
-                    view_matrix: camera.view_matrix(),
-                    perspective_matrix: camera::perspective_matrix(&target),
-                    light: SCENE_LIGHT,
-                    pot_color: [0.9, 0.1, 0.2f32],
-                },
-                &params,
-            )
-            .unwrap();
-    }
-}
+const SCENE_LIGHT: [f32; 3] = [1.0, 1.0, -1.0];
 
 fn main() {
     let event_loop = glutin::event_loop::EventLoop::new();
@@ -125,8 +66,8 @@ fn main() {
     )
     .unwrap();
 
-    let pot = Teapot::new([0.0, 0.0, 5.0], &display);
-    let mut cube = cube::Cube::new([0.0, 0.0, -5.0], &display, None);
+    let mut cube1 = cube::Cube::new([-1.0, 1.0, 5.0], &display, None, [0.6, 0.2, 0.2]);
+    let mut cube2 = cube::Cube::new([1.0, 0.0, 5.0], &display, None, [0.22, 0.6, 0.1]);
     let mut camera = Camera::new(&[0.0, 0.0, 0.0], &[0.0, 0.0, 5.0]);
 
     let mut t: f32= 0.0;
@@ -136,10 +77,27 @@ fn main() {
 
         target.clear_color_and_depth((0.1, 0.15, 0.9, 1.0), 1.0);
 
-        //pot.draw(&mut target, &params, &camera, &teapot_shader);
 
-        cube.translate(&[0.005 * (t/3.0).cos(), 0.0, 0.005 * (t/3.0).sin()]);
-        cube.draw(&mut target, &params, &camera, &teapot_shader);
+        //cube.translate(&[0.005 * (t/3.0).cos(), 0.0, 0.005 * (t/3.0).sin()]);
+        /*let r = quaternion_rotation_matrix(&[0.0, 1.0, 0.0], t);
+        for x in 0..3 {
+            for y in 0..3 {
+                cube.model_matrix[x][y] = r[x][y];
+            }
+        }*/
+
+        cube1.model_matrix[0][0] = t.cos();
+        cube1.model_matrix[0][2] = t.sin();
+        cube1.model_matrix[2][0] = -t.sin();
+        cube1.model_matrix[2][2] = t.cos();
+
+        cube2.model_matrix[0][0] = (-t).cos();
+        cube2.model_matrix[0][2] = (-t).sin();
+        cube2.model_matrix[2][0] = t.sin();
+        cube2.model_matrix[2][2] = (-t).cos();
+
+        cube1.draw(&mut target, &params, &camera, &teapot_shader);
+        cube2.draw(&mut target, &params, &camera, &teapot_shader);
 
         target.finish().unwrap();
 
@@ -162,6 +120,8 @@ fn main() {
                                 VirtualKeyCode::D => camera.move_direction(&[0.5, 0.0, 0.0]),
                                 VirtualKeyCode::Space => camera.move_direction(&[0.0, 0.5, 0.0]),
                                 VirtualKeyCode::LShift => camera.move_direction(&[0.0, -0.5, 0.0]),
+
+                                VirtualKeyCode::C => t += 0.05,
 
                                 VirtualKeyCode::Up => camera.translate(&[0.0, 0.01, 0.0]),
                                 VirtualKeyCode::Down => camera.translate(&[0.0, -0.01, 0.0]),

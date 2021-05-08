@@ -9,8 +9,13 @@ uniform mat4 perspective_matrix;
 
 //out vec2 v_tex_coords;
 out vec3 v_normal;
+out vec3 v_position;
 
 void main() {
-    v_normal = (model_matrix * vec4(normal, 1.0)).xyz;//transpose(inverse(mat3(view_matrix))) * normal;
-    gl_Position = perspective_matrix * view_matrix * model_matrix * vec4(position, 1.0);
+    mat4 camera_matrix = perspective_matrix * view_matrix;
+    
+    v_normal = transpose(inverse(mat3(model_matrix))) * normal;
+    v_position =  (camera_matrix * vec4(position, 1.0)).xyz;
+    
+    gl_Position = camera_matrix * model_matrix * vec4(position, 1.0);
 }

@@ -1,5 +1,5 @@
 [package]
-name = "LearningOpenGL"
+name = "learning_opengl"
 version = "0.1.0"
 authors = ["Will Farris <9190155+GetLiquid@users.noreply.github.com>"]
 edition = "2018"

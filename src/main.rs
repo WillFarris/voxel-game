@@ -12,14 +12,40 @@ use std::io::prelude::*;
 use std::path::Path;
 
 extern crate glium;
-use glium::{
-    glutin::{self, event::VirtualKeyCode},
-    uniform, DrawParameters, IndexBuffer, Program, Surface, VertexBuffer,
-};
+use glium::{Display, Program, ProgramCreationError, Surface, backend::Facade, glutin::{self, event::VirtualKeyCode}};
 
 extern crate image;
 
-const SCENE_LIGHT: [f32; 3] = [1.0, 1.0, -1.0];
+const SCENE_LIGHT: [f32; 3] = [-1.0, -1.0, -1.0];
+
+fn load_shader(display: &Display, vertex_path: &str, fragment_path: &str) -> Result<Program, ProgramCreationError> {
+    let mut tri_vertex_shader_file = match File::open(Path::new(vertex_path)) {
+        Err(why) => panic!("Could not open file: {}", why),
+        Ok(file) => file,
+    };
+    let mut tri_vertex_shader_str = String::new();
+    match tri_vertex_shader_file.read_to_string(&mut tri_vertex_shader_str) {
+        Err(why) => panic!("Could not read file: {}", why),
+        Ok(_) => (),
+    }
+    let mut tri_fragment_shader_file = match File::open(Path::new(fragment_path)) {
+        Err(why) => panic!("Could not open file: {}", why),
+        Ok(file) => file,
+    };
+    let mut tri_fragment_shader_str = String::new();
+    match tri_fragment_shader_file.read_to_string(&mut tri_fragment_shader_str) {
+        Err(why) => panic!("Could not read file: {}", why),
+        Ok(_) => (),
+    }
+
+    let shader = glium::Program::from_source(
+        display,
+        tri_vertex_shader_str.as_str(),
+        tri_fragment_shader_str.as_str(),
+        None,
+    );
+    shader
+}
 
 fn main() {
     let event_loop = glutin::event_loop::EventLoop::new();
@@ -37,67 +63,27 @@ fn main() {
         line_width: Some(1.0),
         ..Default::default()
     };
-
-    /* Read the vertex and fragment shaders from disk and create a program */
-    let mut tri_vertex_shader_file = match File::open(Path::new("shaders/tri_vertex.glsl")) {
-        Err(why) => panic!("Could not open file: {}", why),
-        Ok(file) => file,
-    };
-    let mut tri_vertex_shader_str = String::new();
-    match tri_vertex_shader_file.read_to_string(&mut tri_vertex_shader_str) {
-        Err(why) => panic!("Could not read file: {}", why),
-        Ok(_) => (),
-    }
-    let mut tri_fragment_shader_file = match File::open(Path::new("shaders/tri_fragment.glsl")) {
-        Err(why) => panic!("Could not open file: {}", why),
-        Ok(file) => file,
-    };
-    let mut tri_fragment_shader_str = String::new();
-    match tri_fragment_shader_file.read_to_string(&mut tri_fragment_shader_str) {
-        Err(why) => panic!("Could not read file: {}", why),
-        Ok(_) => (),
-    }
-
-    let teapot_shader = glium::Program::from_source(
-        &display,
-        tri_vertex_shader_str.as_str(),
-        tri_fragment_shader_str.as_str(),
-        None,
-    )
-    .unwrap();
+    let cube_shader = load_shader(&display, "shaders/cube_vertex.glsl", "shaders/cube_fragment.glsl").unwrap();
 
     let mut cube1 = cube::Cube::new([-1.0, 1.0, 5.0], &display, None, [0.6, 0.2, 0.2]);
     let mut cube2 = cube::Cube::new([1.0, 0.0, 5.0], &display, None, [0.22, 0.6, 0.1]);
     let mut camera = Camera::new(&[0.0, 0.0, 0.0], &[0.0, 0.0, 5.0]);
 
-    let mut t: f32= 0.0;
+    let mut cubes: Vec<cube::Cube> = Vec::with_capacity(5 * 5);
+    for x in 0..5 {
+        for z in 0..5 {
+            cubes.push(cube::Cube::new([x as f32, 1.0, z as f32], &display, None, [0.6, 0.2, 0.2]));
+        }
+    }
+
     event_loop.run(move |ev, _, control_flow| {
-        t += 0.001;
         let mut target = display.draw();
 
         target.clear_color_and_depth((0.1, 0.15, 0.9, 1.0), 1.0);
 
-
-        //cube.translate(&[0.005 * (t/3.0).cos(), 0.0, 0.005 * (t/3.0).sin()]);
-        /*let r = quaternion_rotation_matrix(&[0.0, 1.0, 0.0], t);
-        for x in 0..3 {
-            for y in 0..3 {
-                cube.model_matrix[x][y] = r[x][y];
-            }
-        }*/
-
-        cube1.model_matrix[0][0] = t.cos();
-        cube1.model_matrix[0][2] = t.sin();
-        cube1.model_matrix[2][0] = -t.sin();
-        cube1.model_matrix[2][2] = t.cos();
-
-        cube2.model_matrix[0][0] = (-t).cos();
-        cube2.model_matrix[0][2] = (-t).sin();
-        cube2.model_matrix[2][0] = t.sin();
-        cube2.model_matrix[2][2] = (-t).cos();
-
-        cube1.draw(&mut target, &params, &camera, &teapot_shader);
-        cube2.draw(&mut target, &params, &camera, &teapot_shader);
+        for c in &cubes {
+            c.draw(&mut target, &params, &camera, &cube_shader);
+        }
 
         target.finish().unwrap();
 
@@ -113,6 +99,7 @@ fn main() {
                 glutin::event::DeviceEvent::Key(k) => match k.virtual_keycode {
                     _ => {
                         if let Some(code) = k.virtual_keycode {
+                            println!("KeyCode: {:?}", code);
                             match code {
                                 VirtualKeyCode::W => camera.move_direction(&[0.0, 0.0, 0.5]),
                                 VirtualKeyCode::S => camera.move_direction(&[0.0, 0.0, -0.5]),
@@ -121,7 +108,7 @@ fn main() {
                                 VirtualKeyCode::Space => camera.move_direction(&[0.0, 0.5, 0.0]),
                                 VirtualKeyCode::LShift => camera.move_direction(&[0.0, -0.5, 0.0]),
 
-                                VirtualKeyCode::C => t += 0.05,
+                                //VirtualKeyCode::C => t += 0.05,
 
                                 VirtualKeyCode::Up => camera.translate(&[0.0, 0.01, 0.0]),
                                 VirtualKeyCode::Down => camera.translate(&[0.0, -0.01, 0.0]),

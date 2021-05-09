@@ -121,7 +121,6 @@ pub struct Cube {
     pub model_matrix: [[f32; 4]; 4],
     v_positions: VertexBuffer<Vertex>,
     v_normals: VertexBuffer<Normal>,
-    c_bounding: &'static [[f32; 3]; 2],
 }
 
 impl Cube {
@@ -138,7 +137,6 @@ impl Cube {
             color,
             v_positions: glium::VertexBuffer::new(display, &CUBE_VERTICES).unwrap(),
             v_normals: glium::VertexBuffer::new(display, &CUBE_NORMALS).unwrap(),
-            c_bounding: &CUBE_COLLISION_BOX,
         }
     }
 

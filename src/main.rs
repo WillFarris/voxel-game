@@ -2,21 +2,21 @@ mod camera;
 mod cube;
 mod vectormath;
 mod vertex;
+mod meshgen;
 
 use camera::*;
-use vectormath::quaternion_rotation_matrix;
-use vertex::*;
+use vertex::{Normal, Vertex};
 
 use std::fs::File;
 use std::io::prelude::*;
 use std::path::Path;
 
 extern crate glium;
-use glium::{Display, Program, ProgramCreationError, Surface, backend::Facade, glutin::{self, event::VirtualKeyCode}};
+use glium::{Display, Program, ProgramCreationError, Surface, glutin::{self, event::VirtualKeyCode}};
 
 extern crate image;
 
-const SCENE_LIGHT: [f32; 3] = [-1.0, -1.0, -1.0];
+const SCENE_LIGHT: [f32; 3] = [-1.0, 0.701, -1.0];
 
 fn load_shader(display: &Display, vertex_path: &str, fragment_path: &str) -> Result<Program, ProgramCreationError> {
     let mut tri_vertex_shader_file = match File::open(Path::new(vertex_path)) {
@@ -65,25 +65,30 @@ fn main() {
     };
     let cube_shader = load_shader(&display, "shaders/cube_vertex.glsl", "shaders/cube_fragment.glsl").unwrap();
 
-    let mut cube1 = cube::Cube::new([-1.0, 1.0, 5.0], &display, None, [0.6, 0.2, 0.2]);
-    let mut cube2 = cube::Cube::new([1.0, 0.0, 5.0], &display, None, [0.22, 0.6, 0.1]);
+    //let mut cube1 = cube::Cube::new([-1.0, 1.0, 5.0], &display, None, [0.6, 0.2, 0.2]);
+    //let mut cube2 = cube::Cube::new([1.0, 0.0, 5.0], &display, None, [0.22, 0.6, 0.1]);
     let mut camera = Camera::new(&[0.0, 0.0, 0.0], &[0.0, 0.0, 5.0]);
 
-    let mut cubes: Vec<cube::Cube> = Vec::with_capacity(5 * 5);
+    /*let mut cubes: Vec<cube::Cube> = Vec::with_capacity(5 * 5);
     for x in 0..5 {
         for z in 0..5 {
             cubes.push(cube::Cube::new([x as f32, 1.0, z as f32], &display, None, [0.6, 0.2, 0.2]));
         }
-    }
+    }*/
+
+    //TODO: offset each face added to the mesh by its position
+    //Then it should be ready to draw
+    let chunk: [[u8; 16]; 16] = [[0u8; 16]; 16];
+    let mesh: (Vec<Vertex>, Vec<Normal>) = meshgen::gen_chunk_mesh(&chunk);
 
     event_loop.run(move |ev, _, control_flow| {
         let mut target = display.draw();
 
         target.clear_color_and_depth((0.1, 0.15, 0.9, 1.0), 1.0);
 
-        for c in &cubes {
+        /*for c in &cubes {
             c.draw(&mut target, &params, &camera, &cube_shader);
-        }
+        }*/
 
         target.finish().unwrap();
 

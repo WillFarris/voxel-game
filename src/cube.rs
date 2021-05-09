@@ -54,8 +54,6 @@ const CUBE_VERTICES: [Vertex; 36] = [
     Vertex { position: ( 0.5, -0.5, -0.5) },   // Back-bottom-right
     Vertex { position: (-0.5,  0.5, -0.5) },   // Back-top-left
     Vertex { position: ( 0.5,  0.5, -0.5) }     // Back-top-right
-
-
 ];
 
 const CUBE_NORMALS: [Normal; 36] = [

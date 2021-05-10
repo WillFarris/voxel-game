@@ -139,6 +139,19 @@ const CUBE_NORMALS: [[Normal; 6]; 6] = [
     ],
 ];
 
+fn push_face(position: &[f32; 3], face: usize, vertices: &mut Vec<Vertex>, normals: &mut Vec<Normal>) {
+    for v in 0..6 {
+        let mut vertex = CUBE_FACES[face][v].clone();
+        vertex.position.0 += position[0];
+        vertex.position.1 += position[1];
+        vertex.position.2 += position[2];
+        let normal = CUBE_NORMALS[face][v].clone();
+
+        vertices.push(vertex);
+        normals.push(normal);
+    }
+}
+
 pub fn gen_chunk_mesh(blocks: &[[[u8; 16]; 16]; 16]) -> (Vec<Vertex>, Vec<Normal>) {
     let mut vertices = Vec::new();
     let mut normals = Vec::new();
@@ -149,12 +162,35 @@ pub fn gen_chunk_mesh(blocks: &[[[u8; 16]; 16]; 16]) -> (Vec<Vertex>, Vec<Normal
                 if blocks[x][y][y] == 0 {
                     continue;
                 }
+
+                let position = [x as f32, y as f32, z as f32];
                 if x == 15 || blocks[x+1][y][z] == 0 {
+                    push_face(&position, 0, &mut vertices, &mut normals);
+                }
+                if x == 0 || blocks[x-1][y][z] == 0 {
+                    push_face(&position, 1, &mut vertices, &mut normals)
+                }
+
+                if y == 15 || blocks[x][y+1][z] == 0 {
+                    push_face(&position, 2, &mut vertices, &mut normals);
+                }
+                if y == 0 || blocks[x][y-1][z] == 0 {
+                    push_face(&position, 3, &mut vertices, &mut normals)
+                }
+
+                if z == 15 || blocks[x][y][z+1] == 0 {
+                    push_face(&position, 4, &mut vertices, &mut normals);
+                }
+                if z == 0 || blocks[x][y][z-1] == 0 {
+                    push_face(&position, 5, &mut vertices, &mut normals)
+                }
+
+                /*if x == 15 || blocks[x+1][y][z] == 0 {
                     for v in 0..6 {
                         let mut vertex = CUBE_FACES[0][v].clone();
-                        vertex.position.0 += (x+1) as f32;
-                        vertex.position.1 += (y+1) as f32;
-                        vertex.position.2 += (z+1) as f32;
+                        vertex.position.0 += x as f32;
+                        vertex.position.1 += y as f32;
+                        vertex.position.2 += z as f32;
                         vertices.push(vertex);
                         normals.push(CUBE_NORMALS[0][v].clone());
                     }
@@ -162,9 +198,9 @@ pub fn gen_chunk_mesh(blocks: &[[[u8; 16]; 16]; 16]) -> (Vec<Vertex>, Vec<Normal
                 if x == 0 || blocks[x-1][y][z] == 0 {
                     for v in 0..6 {
                         let mut vertex = CUBE_FACES[1][v].clone();
-                        vertex.position.0 += (x+1) as f32;
-                        vertex.position.1 += (y+1) as f32;
-                        vertex.position.2 += (z+1) as f32;
+                        vertex.position.0 += x as f32;
+                        vertex.position.1 += y as f32;
+                        vertex.position.2 += z as f32;
                         vertices.push(vertex);
                         normals.push(CUBE_NORMALS[1][v].clone());
                     }
@@ -173,9 +209,9 @@ pub fn gen_chunk_mesh(blocks: &[[[u8; 16]; 16]; 16]) -> (Vec<Vertex>, Vec<Normal
                 if y == 255 || blocks[x][y+1][z] == 0 {
                     for v in 0..6 {
                         let mut vertex = CUBE_FACES[2][v].clone();
-                        vertex.position.0 += (x+1) as f32;
-                        vertex.position.1 += (y+1) as f32;
-                        vertex.position.2 += (z+1) as f32;
+                        vertex.position.0 += x as f32;
+                        vertex.position.1 += y as f32;
+                        vertex.position.2 += z as f32;
                         vertices.push(vertex);
                         normals.push(CUBE_NORMALS[2][v].clone());
                     }
@@ -183,9 +219,9 @@ pub fn gen_chunk_mesh(blocks: &[[[u8; 16]; 16]; 16]) -> (Vec<Vertex>, Vec<Normal
                 if y == 0 || blocks[x][y-1][z] == 0 {
                     for v in 0..6 {
                         let mut vertex = CUBE_FACES[3][v].clone();
-                        vertex.position.0 += (x+1) as f32;
-                        vertex.position.1 += (y+1) as f32;
-                        vertex.position.2 += (z+1) as f32;
+                        vertex.position.0 += x as f32;
+                        vertex.position.1 += y as f32;
+                        vertex.position.2 += z as f32;
                         vertices.push(vertex);
                         normals.push(CUBE_NORMALS[3][v].clone());
                     }
@@ -194,9 +230,9 @@ pub fn gen_chunk_mesh(blocks: &[[[u8; 16]; 16]; 16]) -> (Vec<Vertex>, Vec<Normal
                 if z == 15 || blocks[x][y][z+1] == 0 {
                     for v in 0..6 {
                         let mut vertex = CUBE_FACES[4][v].clone();
-                        vertex.position.0 += (x+1) as f32;
-                        vertex.position.1 += (y+1) as f32;
-                        vertex.position.2 += (z+1) as f32;
+                        vertex.position.0 += x as f32;
+                        vertex.position.1 += y as f32;
+                        vertex.position.2 += z as f32;
                         vertices.push(vertex);
                         normals.push(CUBE_NORMALS[4][v].clone());
                     }
@@ -204,16 +240,17 @@ pub fn gen_chunk_mesh(blocks: &[[[u8; 16]; 16]; 16]) -> (Vec<Vertex>, Vec<Normal
                 if z == 0 || blocks[x][y][z-1] == 0 {
                     for v in 0..6 {
                         let mut vertex = CUBE_FACES[5][v].clone();
-                        vertex.position.0 += (x+1) as f32;
-                        vertex.position.1 += (y+1) as f32;
-                        vertex.position.2 += (z+1) as f32;
+                        vertex.position.0 += x as f32;
+                        vertex.position.1 += y as f32;
+                        vertex.position.2 += z as f32;
                         vertices.push(vertex);
                         normals.push(CUBE_NORMALS[5][v].clone());
                     }
-                }
+                }*/
             }
         }
     }
+    println!("Num verts: {}", vertices.len());
 
     (vertices, normals)
 }

@@ -12,6 +12,7 @@ use vertex::{Normal, Vertex};
 use std::fs::File;
 use std::io::prelude::*;
 use std::path::Path;
+use std::cmp::{min, max};
 
 extern crate glium;
 use glium::{Display, Program, ProgramCreationError, Surface, VertexBuffer, glutin::{self, event::VirtualKeyCode}, uniform};
@@ -51,7 +52,7 @@ fn load_shader(display: &Display, vertex_path: &str, fragment_path: &str) -> Res
 
 fn main() {
     let event_loop = glutin::event_loop::EventLoop::new();
-    let wb = glutin::window::WindowBuilder::new().with_title("A game").with_maximized(true);
+    let wb = glutin::window::WindowBuilder::new().with_title("A game").with_maximized(false);
     let cb = glutin::ContextBuilder::new().with_depth_buffer(24);
     let display = glium::Display::new(wb, cb, &event_loop).unwrap();
     let params = glium::DrawParameters {
@@ -74,23 +75,24 @@ fn main() {
 
 
     let mut chunk: [[[u8; 16]; 16]; 16] = [[[0u8; 16]; 16]; 16];
-    for x in 0..16 {
-        for z in 0..16 {
-            if x % 2 == 0 {
-                chunk[x][1][z] = 1;
+    /*for x in 0..16 {
+        for y in 0..4 {
+            for z in 0..16 {
+                chunk[x][y][z] = 1;
             }
         }
-    }
+    }*/
 
-    let mut mesh: (Vec<Vertex>, Vec<Normal>) = meshgen::gen_chunk_mesh(&chunk);
-    let mut mesh_vertex_buffer = VertexBuffer::new(&display, mesh.0.as_slice()).unwrap();
-    let mut mesh_normal_buffer = VertexBuffer::new(&display, mesh.1.as_slice()).unwrap();
-    let mesh_matrix = [
-        [1.0, 0.0, 0.0, 0.0],
-        [0.0, 1.0, 0.0, 0.0],
-        [0.0, 0.0, 1.0, 0.0],
-        [0.0, 0.0, 0.0, 1.0f32],
-    ];
+    chunk[0][1][0] = 1;
+    let mesh: (Vec<Vertex>, Vec<Normal>) = meshgen::gen_chunk_mesh(&chunk);
+    let mesh_vertex_buffer = VertexBuffer::new(&display, mesh.0.as_slice()).unwrap();
+    let mesh_normal_buffer = VertexBuffer::new(&display, mesh.1.as_slice()).unwrap();
+
+
+    
+    //mesh = meshgen::gen_chunk_mesh(&chunk);
+    //mesh_vertex_buffer = VertexBuffer::new(&display, mesh.0.as_slice()).unwrap();
+    //mesh_normal_buffer = VertexBuffer::new(&display, mesh.1.as_slice()).unwrap();
 
     event_loop.run(move |ev, _, control_flow| {
         let next_frame_time = std::time::Instant::now() +
@@ -113,7 +115,7 @@ fn main() {
                 glium::index::NoIndices(glium::index::PrimitiveType::TrianglesList),
                 &cube_shader,
                 &uniform! {
-                    model_matrix: mesh_matrix,
+                    model_matrix: vectormath::IDENTITY_MAT4,
                     view_matrix: camera.view_matrix(),
                     perspective_matrix: crate::camera::perspective_matrix(&target),
                     light: crate::SCENE_LIGHT,
@@ -139,7 +141,7 @@ fn main() {
                 glutin::event::DeviceEvent::Key(k) => match k.virtual_keycode {
                     _ => {
                         if let Some(code) = k.virtual_keycode {
-                            println!("KeyCode: {:?}", code);
+                            //println!("KeyCode: {:?}", code);
                             match code {
                                 VirtualKeyCode::W => camera.move_direction(&[0.0, 0.0, 0.5]),
                                 VirtualKeyCode::S => camera.move_direction(&[0.0, 0.0, -0.5]),
@@ -148,9 +150,46 @@ fn main() {
                                 VirtualKeyCode::Space => camera.move_direction(&[0.0, 0.5, 0.0]),
                                 VirtualKeyCode::LShift => camera.move_direction(&[0.0, -0.5, 0.0]),
 
-                                VirtualKeyCode::Up => camera.translate(&[0.0, 0.01, 0.0]),
-                                VirtualKeyCode::Down => camera.translate(&[0.0, -0.01, 0.0]),
+                                VirtualKeyCode::Up => camera.rotate_on_x_axis(-0.05),
+                                VirtualKeyCode::Down => camera.rotate_on_x_axis(0.05),
+                                VirtualKeyCode::Left => camera.rotate_on_y_axis(-0.05),
+                                VirtualKeyCode::Right => camera.rotate_on_y_axis(0.05),
 
+                                VirtualKeyCode::C => {
+                                    let mut ray = (
+                                        camera.position[0],
+                                        camera.position[1],
+                                        camera.position[2],
+                                    );
+                                    let mut hit = false;
+                                    let hit_radius = 20;
+                                    let mut steps = 0;
+                                    while !hit && steps < hit_radius {
+                                        for x in 0..15 {
+                                            for y in 0..15 {
+                                                for z in 0..15 {
+                                                    if ray.0 > (x as f32)-0.5 && ray.0 < (x as f32)+0.5
+                                                    && ray.1 > (y as f32)-0.5 && ray.1 < (y as f32)+0.5
+                                                    && ray.2 > (z as f32)-0.5 && ray.2 < (z as f32)+0.5 {
+                                                        println!("Chunk intersection with block at ({}, {}, {}): {}", x, y, z, chunk[x][y][z]);
+                                                        if chunk[x][y][z] != 0 {
+                                                            hit = true;
+                                                            cube1.translate(&[x as f32, y as f32, z as f32]);
+                                                            //chunk[x][y][z] = 0;
+                                                            //mesh = meshgen::gen_chunk_mesh(&chunk);
+                                                            //mesh_vertex_buffer = VertexBuffer::new(&display, mesh.0.as_slice()).unwrap();
+                                                            //mesh_normal_buffer = VertexBuffer::new(&display, mesh.1.as_slice()).unwrap();
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        ray.0 += 0.5 * camera.forward[0];
+                                        ray.1 += 0.5 * camera.forward[1];
+                                        ray.2 += 0.5 * camera.forward[2];
+                                        steps += 1;
+                                    }
+                                },
                                 VirtualKeyCode::Escape => *control_flow = glutin::event_loop::ControlFlow::Exit,
 
                                 _ => (),
@@ -158,76 +197,16 @@ fn main() {
                         }
                     }
                 },
-                glutin::event::DeviceEvent::Button { button, state } => match button {
-                    1 => {
-                        if state == glutin::event::ElementState::Pressed {
-                            let mut ray = (
-                                camera.position[0],
-                                camera.position[1],
-                                camera.position[2],
-                            );
-                            let mut d = f32::INFINITY;
-                            let max_steps = 10;
-                            let mut steps = 0;
-                            while d > 0.25 && steps < max_steps {
-                                d = {
-                                    let mut min_dist = f32::INFINITY;
-                                    for x in 0..16 {
-                                        for y in 0..16 {
-                                            for z in 0..16 {
-                                                if chunk[x][y][z] != 0 {
-                                                    let d_squared =
-                                                    (x as f32 - ray.0) * (x as f32 - ray.0) +
-                                                    (y as f32 - ray.1) * (y as f32 - ray.1) +
-                                                    (z as f32 - ray.2) * (z as f32 - ray.2);
-                                                    if d_squared < min_dist {
-                                                        min_dist = d_squared;
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                    min_dist.sqrt()
-                                };
-                                steps += 1;
-                            }
-
-                            ray.0 += d * camera.forward[0];
-                            ray.1 += d * camera.forward[1];
-                            ray.2 += d * camera.forward[2];
-
-                            //cube1.translate(&[ray.0, ray.1, ray.2]);
-                            cube1.translate(&[ray.0.round(), ray.1.round(), ray.2.round()]);
-
-                            /*while d > 0.3 && steps < max_steps {
-                                d = {
-                                    let mut min_dist: f32 = 100000f32;
-                                    for v in &mesh.0 {
-                                        let d_squared = 
-                                        (v.position.0 - ray.0) * (v.position.0 - ray.0) +
-                                        (v.position.1 - ray.1) * (v.position.1 - ray.1) +
-                                        (v.position.2 - ray.2) * (v.position.2 - ray.2);
-                                        if d_squared < min_dist {
-                                            min_dist = d_squared;
-                                        }
-                                    }
-                                    min_dist.sqrt()
-                                };
-                                ray.0 += d * 0.5 * camera.forward[0];
-                                ray.1 += d * 0.5 * camera.forward[1];
-                                ray.2 += d * 0.5 * camera.forward[2];
-                                steps += 1;
-                            }*/
-                                                     
-                        }
+                /*glutin::event::DeviceEvent::Button { button, state } => match button {
+                    1 => 
                     }
                     _ => {}
-                }
-                glutin::event::DeviceEvent::Motion { axis, value } => match axis {
+                }*/
+                /*glutin::event::DeviceEvent::Motion { axis, value } => match axis {
                     0 => camera.rotate_on_y_axis(value as f32 * 0.001),
                     1 => camera.rotate_on_x_axis(value as f32 * 0.001),
                     _ => {}
-                },
+                },*/
                 _ => {}
             },
             _ => (),

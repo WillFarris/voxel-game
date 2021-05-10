@@ -139,13 +139,13 @@ impl Cube {
     }
 
     pub fn translate(&mut self, pos: &[f32; 3]) {
-        self.position[0] += pos[0];
-        self.position[1] += pos[1];
-        self.position[2] += pos[2];
+        self.position[0] = pos[0];
+        self.position[1] = pos[1];
+        self.position[2] = pos[2];
 
-        self.model_matrix[3][0] += pos[0];
-        self.model_matrix[3][1] += pos[1];
-        self.model_matrix[3][2] += pos[2];
+        self.model_matrix[3][0] = pos[0];
+        self.model_matrix[3][1] = pos[1];
+        self.model_matrix[3][2] = pos[2];
     }
 
     pub fn draw(

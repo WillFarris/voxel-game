@@ -2,10 +2,10 @@ use crate::vectormath::*;
 use glium::{Frame, Surface};
 
 pub struct Camera {
-    position: [f32; 3],
+    pub position: [f32; 3],
     pub forward: [f32; 3],
-    right: [f32; 3],
-    up: [f32; 3],
+    pub right: [f32; 3],
+    pub up: [f32; 3],
 }
 
 impl Camera {
@@ -24,15 +24,11 @@ impl Camera {
 
     pub fn view_matrix(&self) -> [[f32; 4]; 4] {
         let p = [
-            -self.position[0] * self.right[0]
-                - self.position[1] * self.right[1]
-                - self.position[2] * self.right[2],
-            -self.position[0] * self.up[0]
-                - self.position[1] * self.up[1]
-                - self.position[2] * self.up[2],
-            -self.position[0] * self.forward[0]
-                - self.position[1] * self.forward[1]
-                - self.position[2] * self.forward[2],
+            -self.position[0] * self.right[0] - self.position[1] * self.right[1] - self.position[2] * self.right[2],
+            
+            -self.position[0] * self.up[0] - self.position[1] * self.up[1] - self.position[2] * self.up[2],
+
+            -self.position[0] * self.forward[0] - self.position[1] * self.forward[1] - self.position[2] * self.forward[2],
         ];
 
         [

@@ -7,53 +7,53 @@ use glium::{
 use glium::{Display, DrawParameters, IndexBuffer, Texture2d};
 
 const CUBE_VERTICES: [Vertex; 36] = [
-    Vertex { position: (-0.5,  0.5,  0.5) },   // Front-top-left
-    Vertex { position: ( 0.5,  0.5,  0.5) },   // Front-top-right
-    Vertex { position: (-0.5, -0.5,  0.5) },   // Front-bottom-left
+    Vertex { position: (-0.5,  0.5,  0.5), normal: ( 0.0,  0.0,  1.0), tex_coords: (0.0, 0.0) },   // Front-top-left
+    Vertex { position: ( 0.5,  0.5,  0.5), normal: ( 0.0,  0.0,  1.0), tex_coords: (0.0, 0.0) },   // Front-top-right
+    Vertex { position: (-0.5, -0.5,  0.5), normal: ( 0.0,  0.0,  1.0), tex_coords: (0.0, 0.0) },   // Front-bottom-left
 
-    Vertex { position: ( 0.5,  0.5,  0.5) },   // Front-top-right
-    Vertex { position: (-0.5, -0.5,  0.5) },   // Front-bottom-left
-    Vertex { position: ( 0.5, -0.5,  0.5) },   // Front-bottom-right
+    Vertex { position: ( 0.5,  0.5,  0.5), normal: ( 0.0,  0.0,  1.0), tex_coords: (0.0, 0.0) },   // Front-top-right
+    Vertex { position: (-0.5, -0.5,  0.5), normal: ( 0.0,  0.0,  1.0), tex_coords: (0.0, 0.0) },   // Front-bottom-left
+    Vertex { position: ( 0.5, -0.5,  0.5), normal: ( 0.0,  0.0,  1.0), tex_coords: (0.0, 0.0) },   // Front-bottom-right
     
-    Vertex { position: (-0.5, -0.5,  0.5) },   // Front-bottom-left
-    Vertex { position: ( 0.5, -0.5,  0.5) },   // Front-bottom-right
-    Vertex { position: ( 0.5, -0.5, -0.5) },   // Back-bottom-right
+    Vertex { position: (-0.5, -0.5,  0.5), normal: ( 0.0,  -1.0, 0.0), tex_coords: (0.0, 0.0) },   // Front-bottom-left
+    Vertex { position: ( 0.5, -0.5,  0.5), normal: ( 0.0,  -1.0, 0.0), tex_coords: (0.0, 0.0) },   // Front-bottom-right
+    Vertex { position: ( 0.5, -0.5, -0.5), normal: ( 0.0,  -1.0, 0.0), tex_coords: (0.0, 0.0) },   // Back-bottom-right
 
-    Vertex { position: ( 0.5, -0.5,  0.5) },   // Front-bottom-right
-    Vertex { position: ( 0.5, -0.5, -0.5) },   // Back-bottom-right
-    Vertex { position: ( 0.5,  0.5,  0.5) },   // Front-top-right
+    Vertex { position: ( 0.5, -0.5,  0.5), normal: ( 1.0,  0.0, 0.0), tex_coords: (0.0, 0.0) },   // Front-bottom-right
+    Vertex { position: ( 0.5, -0.5, -0.5), normal: ( 1.0,  0.0, 0.0), tex_coords: (0.0, 0.0) },   // Back-bottom-right
+    Vertex { position: ( 0.5,  0.5,  0.5), normal: ( 1.0,  0.0, 0.0), tex_coords: (0.0, 0.0) },   // Front-top-right
 
-    Vertex { position: ( 0.5, -0.5, -0.5) },   // Back-bottom-right
-    Vertex { position: ( 0.5,  0.5,  0.5) },   // Front-top-right
-    Vertex { position: ( 0.5,  0.5, -0.5) },   // Back-top-right
+    Vertex { position: ( 0.5, -0.5, -0.5), normal: ( 1.0,  0.0, 0.0), tex_coords: (0.0, 0.0) },   // Back-bottom-right
+    Vertex { position: ( 0.5,  0.5,  0.5), normal: ( 1.0,  0.0, 0.0), tex_coords: (0.0, 0.0) },   // Front-top-right
+    Vertex { position: ( 0.5,  0.5, -0.5), normal: ( 1.0,  0.0, 0.0), tex_coords: (0.0, 0.0) },   // Back-top-right
 
-    Vertex { position: ( 0.5,  0.5,  0.5) },   // Front-top-right
-    Vertex { position: ( 0.5,  0.5, -0.5) },   // Back-top-right
-    Vertex { position: (-0.5,  0.5,  0.5) },   // Front-top-left
+    Vertex { position: ( 0.5,  0.5,  0.5), normal: ( 0.0,  1.0, 0.0), tex_coords: (0.0, 0.0) },   // Front-top-right
+    Vertex { position: ( 0.5,  0.5, -0.5), normal: ( 0.0,  1.0, 0.0), tex_coords: (0.0, 0.0) },   // Back-top-right
+    Vertex { position: (-0.5,  0.5,  0.5), normal: ( 0.0,  1.0, 0.0), tex_coords: (0.0, 0.0) },   // Front-top-left
 
-    Vertex { position: ( 0.5,  0.5, -0.5) },   // Back-top-right
-    Vertex { position: (-0.5,  0.5,  0.5) },   // Front-top-left
-    Vertex { position: (-0.5,  0.5, -0.5) },   // Back-top-left
+    Vertex { position: ( 0.5,  0.5, -0.5), normal: ( 0.0,  1.0, 0.0), tex_coords: (0.0, 0.0) },   // Back-top-right
+    Vertex { position: (-0.5,  0.5,  0.5), normal: ( 0.0,  1.0, 0.0), tex_coords: (0.0, 0.0) },   // Front-top-left
+    Vertex { position: (-0.5,  0.5, -0.5), normal: ( 0.0,  1.0, 0.0), tex_coords: (0.0, 0.0) },   // Back-top-left
 
-    Vertex { position: (-0.5,  0.5,  0.5) },   // Front-top-left
-    Vertex { position: (-0.5,  0.5, -0.5) },   // Back-top-left
-    Vertex { position: (-0.5, -0.5,  0.5) },   // Front-bottom-left
+    Vertex { position: (-0.5,  0.5,  0.5), normal: ( -1.0,  0.0, 0.0), tex_coords: (0.0, 0.0) },   // Front-top-left
+    Vertex { position: (-0.5,  0.5, -0.5), normal: ( -1.0,  0.0, 0.0), tex_coords: (0.0, 0.0) },   // Back-top-left
+    Vertex { position: (-0.5, -0.5,  0.5), normal: ( -1.0,  0.0, 0.0), tex_coords: (0.0, 0.0) },   // Front-bottom-left
 
-    Vertex { position: (-0.5,  0.5, -0.5) },   // Back-top-left
-    Vertex { position: (-0.5, -0.5,  0.5) },   // Front-bottom-left
-    Vertex { position: (-0.5, -0.5, -0.5) },   // Back-bottom-left
+    Vertex { position: (-0.5,  0.5, -0.5), normal: ( -1.0,  0.0, 0.0), tex_coords: (0.0, 0.0) },   // Back-top-left
+    Vertex { position: (-0.5, -0.5,  0.5), normal: ( -1.0,  0.0, 0.0), tex_coords: (0.0, 0.0) },   // Front-bottom-left
+    Vertex { position: (-0.5, -0.5, -0.5), normal: ( -1.0,  0.0, 0.0), tex_coords: (0.0, 0.0) },   // Back-bottom-left
 
-    Vertex { position: (-0.5, -0.5,  0.5) },   // Front-bottom-left
-    Vertex { position: (-0.5, -0.5, -0.5) },   // Back-bottom-left
-    Vertex { position: ( 0.5, -0.5, -0.5) },   // Back-bottom-right
+    Vertex { position: (-0.5, -0.5,  0.5), normal: ( 0.0,  -1.0, 0.0), tex_coords: (0.0, 0.0) },   // Front-bottom-left
+    Vertex { position: (-0.5, -0.5, -0.5), normal: ( 0.0,  -1.0, 0.0), tex_coords: (0.0, 0.0) },   // Back-bottom-left
+    Vertex { position: ( 0.5, -0.5, -0.5), normal: ( 0.0,  -1.0, 0.0), tex_coords: (0.0, 0.0) },   // Back-bottom-right
 
-    Vertex { position: (-0.5, -0.5, -0.5) },   // Back-bottom-left
-    Vertex { position: ( 0.5, -0.5, -0.5) },   // Back-bottom-right
-    Vertex { position: (-0.5,  0.5, -0.5) },   // Back-top-left
+    Vertex { position: (-0.5, -0.5, -0.5), normal: ( 0.0,  0.0, -1.0), tex_coords: (0.0, 0.0) },   // Back-bottom-left
+    Vertex { position: ( 0.5, -0.5, -0.5), normal: ( 0.0,  0.0, -1.0), tex_coords: (0.0, 0.0) },   // Back-bottom-right
+    Vertex { position: (-0.5,  0.5, -0.5), normal: ( 0.0,  0.0, -1.0), tex_coords: (0.0, 0.0) },   // Back-top-left
 
-    Vertex { position: ( 0.5, -0.5, -0.5) },   // Back-bottom-right
-    Vertex { position: (-0.5,  0.5, -0.5) },   // Back-top-left
-    Vertex { position: ( 0.5,  0.5, -0.5) }     // Back-top-right
+    Vertex { position: ( 0.5, -0.5, -0.5), normal: ( 0.0,  0.0, -1.0), tex_coords: (0.0, 0.0) },   // Back-bottom-right
+    Vertex { position: (-0.5,  0.5, -0.5), normal: ( 0.0,  0.0, -1.0), tex_coords: (0.0, 0.0) },   // Back-top-left
+    Vertex { position: ( 0.5,  0.5, -0.5), normal: ( 0.0,  0.0, -1.0), tex_coords: (0.0, 0.0) }     // Back-top-right
 ];
 
 const CUBE_NORMALS: [Normal; 36] = [
@@ -117,8 +117,7 @@ pub struct Cube {
     texture: Option<glium::Texture2d>,
 
     pub model_matrix: [[f32; 4]; 4],
-    v_positions: VertexBuffer<Vertex>,
-    v_normals: VertexBuffer<Normal>,
+    vertices: VertexBuffer<Vertex>,
 }
 
 impl Cube {
@@ -133,8 +132,7 @@ impl Cube {
             ],
             texture,
             color,
-            v_positions: glium::VertexBuffer::new(display, &CUBE_VERTICES).unwrap(),
-            v_normals: glium::VertexBuffer::new(display, &CUBE_NORMALS).unwrap(),
+            vertices: glium::VertexBuffer::new(display, &CUBE_VERTICES).unwrap(),
         }
     }
 
@@ -157,7 +155,7 @@ impl Cube {
     ) {
         target
             .draw(
-                (&self.v_positions, &self.v_normals),
+                &self.vertices,
                 glium::index::NoIndices(glium::index::PrimitiveType::TriangleStrip),
                 &shader,
                 &uniform! {

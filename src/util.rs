@@ -31,9 +31,25 @@ fn load_shader_str(vertex_path: &str, fragment_path: &str) -> (String, String) {
     (vertex_shader_str, fragment_shader_str)
 }
 
+const vertex_source: &str = r#"
+    #version 330 core
+    in vec3 aPos;
+    void main() {
+       gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);
+    }
+"#;
+
+const fragment_source: &str = r#"
+    #version 330 core
+    out vec4 FragColor;
+    void main() {
+       FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);
+    }
+"#;
+
 pub(crate) fn gen_shader_vao(mesh: &Vec<vertex::Vertex>, vertex_path: &str, fragment_path: &str) -> (u32, u32) {
 
-    let (vertex_source, fragment_source) = load_shader_str(vertex_path, fragment_path);
+    //let (vertex_source, fragment_source) = load_shader_str(vertex_path, fragment_path);
 
     let (shaderProgram, VAO) = unsafe {
         // build and compile our shader program

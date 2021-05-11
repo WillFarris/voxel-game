@@ -7,82 +7,60 @@ mod block;
 
 use block::{Block, TextureType};
 use camera::*;
+use glfw::Context;
 use vertex::Vertex;
 
-use std::fs::File;
+use std::{fs::File, sync::mpsc::Receiver};
 use std::io::{prelude::*, Cursor};
 use std::path::Path;
-use std::include_bytes;
-
-extern crate glium;
-use glium::{Display, Program, ProgramCreationError, Surface, VertexBuffer, glutin::{self, event::{ElementState, VirtualKeyCode}}, uniform, uniforms::{MagnifySamplerFilter, MinifySamplerFilter}};
 
 extern crate image;
+extern crate glfw;
+extern crate gl;
 
 const SCENE_LIGHT: [f32; 3] = [-1.0, 0.701, -1.0];
 
-fn load_shader(display: &Display, vertex_path: &str, fragment_path: &str) -> Result<Program, ProgramCreationError> {
-    let mut tri_vertex_shader_file = match File::open(Path::new(vertex_path)) {
+fn load_shader(vertex_path: &str, fragment_path: &str) -> (String, String) {
+    let mut vertex_shader_file = match File::open(Path::new(vertex_path)) {
         Err(why) => panic!("Could not open file: {}", why),
         Ok(file) => file,
     };
-    let mut tri_vertex_shader_str = String::new();
-    match tri_vertex_shader_file.read_to_string(&mut tri_vertex_shader_str) {
+    let mut vertex_shader_str = String::new();
+    match vertex_shader_file.read_to_string(&mut vertex_shader_str) {
         Err(why) => panic!("Could not read file: {}", why),
         Ok(_) => (),
     }
-    let mut tri_fragment_shader_file = match File::open(Path::new(fragment_path)) {
+    let mut fragment_shader_file = match File::open(Path::new(fragment_path)) {
         Err(why) => panic!("Could not open file: {}", why),
         Ok(file) => file,
     };
-    let mut tri_fragment_shader_str = String::new();
-    match tri_fragment_shader_file.read_to_string(&mut tri_fragment_shader_str) {
+    let mut fragment_shader_str = String::new();
+    match fragment_shader_file.read_to_string(&mut fragment_shader_str) {
         Err(why) => panic!("Could not read file: {}", why),
         Ok(_) => (),
     }
 
-    let shader = glium::Program::from_source(
-        display,
-        tri_vertex_shader_str.as_str(),
-        tri_fragment_shader_str.as_str(),
-        None,
-    );
-    shader
+    (vertex_shader_str, fragment_shader_str)
 }
 
 fn main() {
-    let event_loop = glutin::event_loop::EventLoop::new();
-    let wb = glutin::window::WindowBuilder::new().with_title("A game").with_maximized(false);
-    let cb = glutin::ContextBuilder::new().with_depth_buffer(24);
-    let display = glium::Display::new(wb, cb, &event_loop).unwrap();
-    let params = glium::DrawParameters {
-        depth: glium::Depth {
-            test: glium::draw_parameters::DepthTest::IfLess,
-            write: true,
-            ..Default::default()
-        },
-        point_size: Some(1.0),
-        line_width: Some(1.0),
-        dithering: false,
-        ..Default::default()
-    };
-    let cube_shader = load_shader(&display, "shaders/cube_vertex.glsl", "shaders/cube_fragment.glsl").unwrap();
 
-    let mut cube1 = cube::Cube::new([-1.0, 5.0, 5.0], &display, None, [0.9, 0.2, 0.2]);
-    //let mut cube2 = cube::Cube::new([1.0, 0.0, 5.0], &display, None, [0.22, 0.6, 0.1]);
-    let mut camera = Camera::new(&[8.0, 6.0, 0.0], &[0.0, 0.0, 0.10]);
+    let mut glfw = glfw::init(glfw::FAIL_ON_ERRORS).unwrap();
 
-    let image = image::load(Cursor::new(&include_bytes!("../terrain.png")),
-                        image::ImageFormat::Png).unwrap().to_rgba8();
-    let image_dimensions = image.dimensions();
-    let image = glium::texture::RawImage2d::from_raw_rgba_reversed(&image.into_raw(), image_dimensions);
-    let terrain_texture = glium::texture::SrgbTexture2d::new(&display, image).unwrap();
-    let behavior = glium::uniforms::SamplerBehavior {
-        minify_filter: MinifySamplerFilter::Nearest,
-        magnify_filter: MagnifySamplerFilter::Nearest,
-        ..Default::default()
-    };
+    let (mut window, events) = glfw.create_window(800, 600, "", glfw::WindowMode::Windowed).expect("Failed to create GLFW window");
 
+
+    window.make_current();
+    window.set_key_polling(true);
+    window.set_cursor_pos_polling(true);
+    window.set_mouse_button_polling(true);
+
+    gl::load_with(|symbol| window.get_proc_address(symbol) as *const _);
+
+
+    let cube_shader = load_shader("shaders/cube_vertex.glsl", "shaders/cube_fragment.glsl");
+    let mut cube1 = cube::Cube::new([-1.0, 5.0, 5.0], [0.9, 0.2, 0.2]);
+    let mut camera = Camera::new(&[8.0, 6.0, 0.0], &[0.0, 0.0, 1.0]);   
     let mut chunk: [[[Block; 16]; 16]; 16] = [[[Block::default(); 16]; 16]; 16];
     for x in 0..16 {
         for y in 0..4 {
@@ -92,77 +70,47 @@ fn main() {
         }
     }
     let mut mesh: Vec<Vertex> = meshgen::gen_chunk_mesh(&chunk);
-    let mut mesh_vertex_buffer = VertexBuffer::new(&display, mesh.as_slice()).unwrap();
 
-    event_loop.run(move |ev, _, control_flow| {
-        let next_frame_time = std::time::Instant::now() +
-        std::time::Duration::from_nanos(16_666_667);
-        *control_flow = glutin::event_loop::ControlFlow::WaitUntil(next_frame_time);
-        let mut target = display.draw();
-
-        target.clear_color_and_depth((0.1, 0.15, 0.9, 1.0), 1.0);
+    let mut cursor_pos = (0.0, 0.0);
+    while !window.should_close() {
+        handle_events(&mut window, &events, &mut cursor_pos);
 
 
-        cube1.draw(&mut target, &params, &camera, &cube_shader);
+        unsafe {
+            gl::ClearColor(0.2, 0.3, 0.3, 1.0);
+            gl::Clear(gl::COLOR_BUFFER_BIT);
+        }
         
         
-        target
-            .draw(
-                &mesh_vertex_buffer,
-                glium::index::NoIndices(glium::index::PrimitiveType::TrianglesList),
-                &cube_shader,
-                &uniform! {
-                    model_matrix: vectormath::IDENTITY_MAT4,
-                    view_matrix: camera.view_matrix(),
-                    perspective_matrix: crate::camera::perspective_matrix(&target),
-                    light: crate::SCENE_LIGHT,
-                    u_color: [0.3, 0.8, 0.3f32],
-                    u_position: camera.position,
-                    u_direction: camera.forward,
-                    tex: glium::uniforms::Sampler(&terrain_texture, behavior),
-                },
-                &params,
-            )
-            .unwrap();
+        window.swap_buffers();
+        glfw.poll_events();
+        
+    }
 
-        target.finish().unwrap();
+}
 
-        match ev {
-            glutin::event::Event::WindowEvent { event, .. } => match event {
-                glutin::event::WindowEvent::CloseRequested => {
-                    *control_flow = glutin::event_loop::ControlFlow::Exit;
-                    return;
-                }
-                _ => return,
+fn handle_events(window: &mut glfw::Window, events: &Receiver<(f64, glfw::WindowEvent)>, cursor_pos: &mut (f64, f64)) {
+    for (_, event) in glfw::flush_messages(&events) {
+        match event {
+            glfw::WindowEvent::CursorPos(x, y) => {
+                let delta = (x - cursor_pos.0, y - cursor_pos.1);
+                println!("Mouse: ({}, {})", delta.0, delta.1);
+                *cursor_pos = (x, y);
             },
-            glutin::event::Event::DeviceEvent { event, .. } => match event {
-                glutin::event::DeviceEvent::Key(k) => match k.virtual_keycode {
-                    _ => {
-                        if let Some(code) = k.virtual_keycode {
-                            //println!("KeyCode: {:?}", code);
-                            match code {
-                                VirtualKeyCode::W => camera.move_direction(&[0.0, 0.0, 0.5]),
-                                VirtualKeyCode::S => camera.move_direction(&[0.0, 0.0, -0.5]),
-                                VirtualKeyCode::A => camera.move_direction(&[-0.5, 0.0, 0.0]),
-                                VirtualKeyCode::D => camera.move_direction(&[0.5, 0.0, 0.0]),
-                                VirtualKeyCode::Space => camera.move_direction(&[0.0, 0.5, 0.0]),
-                                VirtualKeyCode::LShift => camera.move_direction(&[0.0, -0.5, 0.0]),
+            glfw::WindowEvent::MouseButton(button, action, modifiers) => {
 
-                                VirtualKeyCode::Up => camera.rotate_on_x_axis(-0.05),
-                                VirtualKeyCode::Down => camera.rotate_on_x_axis(0.05),
-                                VirtualKeyCode::Left => camera.rotate_on_y_axis(-0.05),
-                                VirtualKeyCode::Right => camera.rotate_on_y_axis(0.05),
+            },
+            glfw::WindowEvent::Key(key  , code, action, modifiers) => {
 
-                                VirtualKeyCode::C => {},
-                                VirtualKeyCode::Escape => *control_flow = glutin::event_loop::ControlFlow::Exit,
+            }
+            _ => {}
+        }
+    }
+}
 
-                                _ => (),
-                            }
-                        }
-                    }
-                },
-                glutin::event::DeviceEvent::Button { button, state } => match button {
-                    1 => {
+
+/*
+{
                         if state == ElementState::Pressed {
                             let mut ray = (
                                 camera.position[0],
@@ -182,10 +130,8 @@ fn main() {
                                                 println!("Chunk intersection with block at ({}, {}, {}): {}", x, y, z, chunk[x][y][z].id);
                                                 if chunk[x][y][z].id != 0 {
                                                     hit = true;
-                                                    //cube1.translate(&[x as f32, y as f32, z as f32]);
                                                     chunk[x][y][z] = Block::default();
                                                     mesh = meshgen::gen_chunk_mesh(&chunk);
-                                                    mesh_vertex_buffer = VertexBuffer::new(&display, mesh.as_slice()).unwrap();
                                                     steps = hit_radius;
                                                     break;
                                                 }
@@ -199,17 +145,5 @@ fn main() {
                                 steps += 1;
                             }
                         }
-                    },
-                    _ => {}
-                }
-                glutin::event::DeviceEvent::Motion { axis, value } => match axis {
-                    0 => camera.rotate_on_y_axis(value as f32 * 0.001),
-                    1 => camera.rotate_on_x_axis(value as f32 * 0.001),
-                    _ => {}
-                },
-                _ => {}
-            },
-            _ => (),
-        }
-    });
-}
+                    }
+*/

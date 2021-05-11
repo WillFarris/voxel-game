@@ -1,5 +1,3 @@
-use glium::implement_vertex;
-
 #[derive(Copy, Clone)]
 pub struct Vertex {
     pub position: (f32, f32, f32),
@@ -7,11 +5,11 @@ pub struct Vertex {
     pub tex_coords: (f32, f32),
 }
 
-implement_vertex!(Vertex, position, normal, tex_coords);
+//implement_vertex!(Vertex, position, normal, tex_coords);
 
 #[derive(Copy, Clone)]
 pub struct Normal {
     pub normal: (f32, f32, f32),
 }
 
-implement_vertex!(Normal, normal);
+//implement_vertex!(Normal, normal);

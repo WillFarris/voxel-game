@@ -1,5 +1,4 @@
 use crate::vectormath::*;
-use glium::{Frame, Surface};
 
 pub struct Camera {
     pub position: [f32; 3],
@@ -84,8 +83,8 @@ impl Camera {
     }
 }
 
-pub fn perspective_matrix(target: &Frame) -> [[f32; 4]; 4] {
-    let (width, height) = target.get_dimensions();
+pub fn perspective_matrix() -> [[f32; 4]; 4] {
+    let (width, height) = (800.0, 600.0);//target.get_dimensions();
     let aspect_ratio = height as f32 / width as f32;
 
     let fov: f32 = 3.141592 / 4.0;

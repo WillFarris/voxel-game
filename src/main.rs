@@ -4,6 +4,7 @@ mod vectormath;
 mod vertex;
 mod meshgen;
 mod block;
+mod util;
 
 use block::{Block, TextureType};
 use camera::*;
@@ -11,8 +12,8 @@ use glfw::Context;
 use vertex::Vertex;
 
 use std::{fs::File, sync::mpsc::Receiver};
-use std::io::{prelude::*, Cursor};
-use std::path::Path;
+
+
 
 extern crate image;
 extern crate glfw;
@@ -20,28 +21,7 @@ extern crate gl;
 
 const SCENE_LIGHT: [f32; 3] = [-1.0, 0.701, -1.0];
 
-fn load_shader(vertex_path: &str, fragment_path: &str) -> (String, String) {
-    let mut vertex_shader_file = match File::open(Path::new(vertex_path)) {
-        Err(why) => panic!("Could not open file: {}", why),
-        Ok(file) => file,
-    };
-    let mut vertex_shader_str = String::new();
-    match vertex_shader_file.read_to_string(&mut vertex_shader_str) {
-        Err(why) => panic!("Could not read file: {}", why),
-        Ok(_) => (),
-    }
-    let mut fragment_shader_file = match File::open(Path::new(fragment_path)) {
-        Err(why) => panic!("Could not open file: {}", why),
-        Ok(file) => file,
-    };
-    let mut fragment_shader_str = String::new();
-    match fragment_shader_file.read_to_string(&mut fragment_shader_str) {
-        Err(why) => panic!("Could not read file: {}", why),
-        Ok(_) => (),
-    }
 
-    (vertex_shader_str, fragment_shader_str)
-}
 
 fn main() {
 
@@ -54,11 +34,13 @@ fn main() {
     window.set_key_polling(true);
     window.set_cursor_pos_polling(true);
     window.set_mouse_button_polling(true);
+    window.set_cursor_pos(400.0, 300.0);
+    window.set_cursor_mode(glfw::CursorMode::Hidden);
 
     gl::load_with(|symbol| window.get_proc_address(symbol) as *const _);
 
 
-    let cube_shader = load_shader("shaders/cube_vertex.glsl", "shaders/cube_fragment.glsl");
+    //let cube_shader = load_shader("shaders/cube_vertex.glsl", "shaders/cube_fragment.glsl");
     let mut cube1 = cube::Cube::new([-1.0, 5.0, 5.0], [0.9, 0.2, 0.2]);
     let mut camera = Camera::new(&[8.0, 6.0, 0.0], &[0.0, 0.0, 1.0]);   
     let mut chunk: [[[Block; 16]; 16]; 16] = [[[Block::default(); 16]; 16]; 16];
@@ -71,14 +53,20 @@ fn main() {
     }
     let mut mesh: Vec<Vertex> = meshgen::gen_chunk_mesh(&chunk);
 
-    let mut cursor_pos = (0.0, 0.0);
+    let (shader, vao) = util::gen_shader_vao(&mesh, "shaders/cube_vertex.glsl", "shaders/cube_fragment.glsl");
+    
     while !window.should_close() {
-        handle_events(&mut window, &events, &mut cursor_pos);
+        handle_events(&mut window, &events);
 
 
         unsafe {
             gl::ClearColor(0.2, 0.3, 0.3, 1.0);
             gl::Clear(gl::COLOR_BUFFER_BIT);
+
+            gl::UseProgram(shader);
+            gl::BindVertexArray(vao); // seeing as we only have a single VAO there's no need to bind it every time, but we'll do so to keep things a bit more organized
+            gl::DrawArrays(gl::TRIANGLES, 0, 3);
+
         }
         
         
@@ -89,20 +77,21 @@ fn main() {
 
 }
 
-fn handle_events(window: &mut glfw::Window, events: &Receiver<(f64, glfw::WindowEvent)>, cursor_pos: &mut (f64, f64)) {
+fn handle_events(window: &mut glfw::Window, events: &Receiver<(f64, glfw::WindowEvent)>) {
     for (_, event) in glfw::flush_messages(&events) {
         match event {
             glfw::WindowEvent::CursorPos(x, y) => {
-                let delta = (x - cursor_pos.0, y - cursor_pos.1);
+                let delta = (x- 400.0, 300.0 - y);
                 println!("Mouse: ({}, {})", delta.0, delta.1);
-                *cursor_pos = (x, y);
+                window.set_cursor_pos(400.0, 300.0);
             },
             glfw::WindowEvent::MouseButton(button, action, modifiers) => {
 
             },
-            glfw::WindowEvent::Key(key  , code, action, modifiers) => {
-
-            }
+            glfw::WindowEvent::Key(key  , code, action, modifiers) => match key {
+                glfw::Key::Escape => window.set_should_close(true),
+                _ => {}
+            },
             _ => {}
         }
     }

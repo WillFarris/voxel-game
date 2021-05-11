@@ -1,10 +1,7 @@
 use crate::{camera::Camera, vertex::*};
 use glium::vertex::VertexBuffer;
-use glium::{
-    glutin::{self, event::VirtualKeyCode},
-    uniform, Program, Surface,
-};
-use glium::{Display, DrawParameters, IndexBuffer, Texture2d};
+use glium::{uniform, Program, Surface};
+use glium::{Display, DrawParameters, Texture2d};
 
 const CUBE_VERTICES: [Vertex; 36] = [
     Vertex { position: (-0.5,  0.5,  0.5), normal: ( 0.0,  0.0,  1.0), tex_coords: (0.0, 0.0) },   // Front-top-left
@@ -54,61 +51,6 @@ const CUBE_VERTICES: [Vertex; 36] = [
     Vertex { position: ( 0.5, -0.5, -0.5), normal: ( 0.0,  0.0, -1.0), tex_coords: (0.0, 0.0) },   // Back-bottom-right
     Vertex { position: (-0.5,  0.5, -0.5), normal: ( 0.0,  0.0, -1.0), tex_coords: (0.0, 0.0) },   // Back-top-left
     Vertex { position: ( 0.5,  0.5, -0.5), normal: ( 0.0,  0.0, -1.0), tex_coords: (0.0, 0.0) }     // Back-top-right
-];
-
-const CUBE_NORMALS: [Normal; 36] = [
-    Normal { normal: ( 0.0,  0.0,  1.0) },   // Front-top-left
-    Normal { normal: ( 0.0,  0.0,  1.0) },   // Front-top-right
-    Normal { normal: ( 0.0,  0.0,  1.0) },   // Front-bottom-left
-
-    Normal { normal: ( 0.0,  0.0,  1.0) },   // Front-top-right
-    Normal { normal: ( 0.0,  0.0,  1.0) },   // Front-bottom-left
-    Normal { normal: ( 0.0,  0.0,  1.0) },   // Front-bottom-right
-    
-    Normal { normal: ( 0.0, -1.0,  0.0) },   // Front-bottom-left
-    Normal { normal: ( 0.0, -1.0,  0.0) },   // Front-bottom-right
-    Normal { normal: ( 0.0, -1.0,  0.0) },   // Back-bottom-right
-
-    Normal { normal: ( 1.0,  0.0,  0.0) },   // Front-bottom-right
-    Normal { normal: ( 1.0,  0.0,  0.0) },   // Back-bottom-right
-    Normal { normal: ( 1.0,  0.0,  0.0) },   // Front-top-right
-
-    Normal { normal: ( 1.0,  0.0,  0.0) },   // Back-bottom-right
-    Normal { normal: ( 1.0,  0.0,  0.0) },   // Front-top-right
-    Normal { normal: ( 1.0,  0.0,  0.0) },   // Back-top-right
-
-    Normal { normal: ( 0.0,  1.0,  0.0) },   // Front-top-right
-    Normal { normal: ( 0.0,  1.0,  0.0) },   // Back-top-right
-    Normal { normal: ( 0.0,  1.0,  0.0) },   // Front-top-left
-
-    Normal { normal: ( 0.0,  1.0,  0.0) },   // Back-top-right
-    Normal { normal: ( 0.0,  1.0,  0.0) },   // Front-top-left
-    Normal { normal: ( 0.0,  1.0,  0.0) },   // Back-top-left
-
-    Normal { normal: (-1.0,  0.0,  0.0) },   // Front-top-left
-    Normal { normal: (-1.0,  0.0,  0.0) },   // Back-top-left
-    Normal { normal: (-1.0,  0.0,  0.0) },   // Front-bottom-left
-
-    Normal { normal: (-1.0,  0.0,  0.0) },   // Back-top-left
-    Normal { normal: (-1.0,  0.0,  0.0) },   // Front-bottom-left
-    Normal { normal: (-1.0,  0.0,  0.0) },   // Back-bottom-left
-
-    Normal { normal: ( 0.0, -1.0,  0.0) },   // Front-bottom-left
-    Normal { normal: ( 0.0, -1.0,  0.0) },   // Back-bottom-left
-    Normal { normal: ( 0.0, -1.0,  0.0) },   // Back-bottom-right
-
-    Normal { normal: ( 0.0,  0.0, -1.0) },   // Back-bottom-left
-    Normal { normal: ( 0.0,  0.0, -1.0) },   // Back-bottom-right
-    Normal { normal: ( 0.0,  0.0, -1.0) },   // Back-top-left
-
-    Normal { normal: ( 0.0,  0.0, -1.0) },   // Back-bottom-right
-    Normal { normal: ( 0.0,  0.0, -1.0) },   // Back-top-left
-    Normal { normal: ( 0.0,  0.0, -1.0) }     // Back-top-right
-];
-
-const CUBE_COLLISION_BOX: [[f32; 3]; 2] = [
-    [-1.0f32; 3],
-    [1.0f32; 3],
 ];
 
 pub struct Cube {

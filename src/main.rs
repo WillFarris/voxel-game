@@ -3,11 +3,11 @@ mod cube;
 mod vectormath;
 mod vertex;
 mod meshgen;
+mod block;
 
+use block::{Block, TextureType};
 use camera::*;
-use cube::Cube;
-use meshgen::gen_chunk_mesh;
-use vertex::{Normal, Vertex};
+use vertex::Vertex;
 
 use std::fs::File;
 use std::io::{prelude::*, Cursor};
@@ -15,7 +15,7 @@ use std::path::Path;
 use std::include_bytes;
 
 extern crate glium;
-use glium::{Display, Program, ProgramCreationError, Surface, VertexBuffer, glutin::{self, event::{ElementState, VirtualKeyCode}}, uniform};
+use glium::{Display, Program, ProgramCreationError, Surface, VertexBuffer, glutin::{self, event::{ElementState, VirtualKeyCode}}, uniform, uniforms::{MagnifySamplerFilter, MinifySamplerFilter}};
 
 extern crate image;
 
@@ -63,6 +63,7 @@ fn main() {
         },
         point_size: Some(1.0),
         line_width: Some(1.0),
+        dithering: false,
         ..Default::default()
     };
     let cube_shader = load_shader(&display, "shaders/cube_vertex.glsl", "shaders/cube_fragment.glsl").unwrap();
@@ -71,17 +72,22 @@ fn main() {
     //let mut cube2 = cube::Cube::new([1.0, 0.0, 5.0], &display, None, [0.22, 0.6, 0.1]);
     let mut camera = Camera::new(&[8.0, 6.0, 0.0], &[0.0, 0.0, 0.10]);
 
-    let image = image::load(Cursor::new(&include_bytes!("../grass.png")),
+    let image = image::load(Cursor::new(&include_bytes!("../terrain.png")),
                         image::ImageFormat::Png).unwrap().to_rgba8();
     let image_dimensions = image.dimensions();
     let image = glium::texture::RawImage2d::from_raw_rgba_reversed(&image.into_raw(), image_dimensions);
-    let diffuse_texture = glium::texture::SrgbTexture2d::new(&display, image).unwrap();
+    let terrain_texture = glium::texture::SrgbTexture2d::new(&display, image).unwrap();
+    let behavior = glium::uniforms::SamplerBehavior {
+        minify_filter: MinifySamplerFilter::Nearest,
+        magnify_filter: MagnifySamplerFilter::Nearest,
+        ..Default::default()
+    };
 
-    let mut chunk: [[[u8; 16]; 16]; 16] = [[[0u8; 16]; 16]; 16];
+    let mut chunk: [[[Block; 16]; 16]; 16] = [[[Block::default(); 16]; 16]; 16];
     for x in 0..16 {
         for y in 0..4 {
             for z in 0..16 {
-                chunk[x][y][z] = 1;
+                chunk[x][y][z] = Block::new(1, Some(TextureType::Single(2,12)));
             }
         }
     }
@@ -113,7 +119,7 @@ fn main() {
                     u_color: [0.3, 0.8, 0.3f32],
                     u_position: camera.position,
                     u_direction: camera.forward,
-                    texture: &diffuse_texture,
+                    tex: glium::uniforms::Sampler(&terrain_texture, behavior),
                 },
                 &params,
             )
@@ -173,11 +179,11 @@ fn main() {
                                             if ray.0 > (x as f32)-0.5 && ray.0 < (x as f32)+0.5
                                             && ray.1 > (y as f32)-0.5 && ray.1 < (y as f32)+0.5
                                             && ray.2 > (z as f32)-0.5 && ray.2 < (z as f32)+0.5 {
-                                                println!("Chunk intersection with block at ({}, {}, {}): {}", x, y, z, chunk[x][y][z]);
-                                                if chunk[x][y][z] != 0 {
+                                                println!("Chunk intersection with block at ({}, {}, {}): {}", x, y, z, chunk[x][y][z].id);
+                                                if chunk[x][y][z].id != 0 {
                                                     hit = true;
                                                     //cube1.translate(&[x as f32, y as f32, z as f32]);
-                                                    chunk[x][y][z] = 0;
+                                                    chunk[x][y][z] = Block::default();
                                                     mesh = meshgen::gen_chunk_mesh(&chunk);
                                                     mesh_vertex_buffer = VertexBuffer::new(&display, mesh.as_slice()).unwrap();
                                                     steps = hit_radius;

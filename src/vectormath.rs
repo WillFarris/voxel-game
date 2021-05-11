@@ -1,5 +1,3 @@
-use std::intrinsics::transmute;
-
 pub const _X_VECTOR: [f32; 3] = [1.0, 0.0, 0.0];
 pub const Y_VECTOR: [f32; 3] = [0.0, 1.0, 0.0];
 pub const _Z_VECTOR: [f32; 3] = [0.0, 0.0, 1.0];

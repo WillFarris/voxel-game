@@ -7,7 +7,7 @@ mod block;
 
 use block::{Block, TextureType};
 use camera::*;
-use vertex::Vertex;
+use vertex::{Vertex, Vertex2D};
 
 use std::fs::File;
 use std::io::{prelude::*, Cursor};
@@ -61,22 +61,42 @@ fn main() {
             write: true,
             ..Default::default()
         },
-        point_size: Some(1.0),
-        line_width: Some(1.0),
-        dithering: false,
         ..Default::default()
     };
     let cube_shader = load_shader(&display, "shaders/cube_vertex.glsl", "shaders/cube_fragment.glsl").unwrap();
+    let ui_shader = load_shader(&display, "shaders/ui_vertex.glsl", "shaders/ui_fragment.glsl").unwrap();
+
+    let ui_crosshair_mesh = [
+        Vertex2D { position: (-0.01, 0.01), tex_coords: (0.0, 1.0) },
+        Vertex2D { position: (-0.01, -0.01), tex_coords: (0.0, 0.0) },
+        Vertex2D { position: (0.01, 0.01), tex_coords: (1.0, 1.0) },
+
+        Vertex2D { position: (0.01, 0.01), tex_coords: (1.0, 1.0) },
+        Vertex2D { position: (0.01, -0.01), tex_coords: (1.0, 0.0) },
+        Vertex2D { position: (-0.01, -0.01), tex_coords: (0.0, 0.0) },
+    ];
+    let ui_crosshair_buffer = glium::VertexBuffer::new(&display, &ui_crosshair_mesh).unwrap();
 
     let mut cube1 = cube::Cube::new([-1.0, 5.0, 5.0], &display, None, [0.9, 0.2, 0.2]);
     //let mut cube2 = cube::Cube::new([1.0, 0.0, 5.0], &display, None, [0.22, 0.6, 0.1]);
     let mut camera = Camera::new(&[8.0, 6.0, 0.0], &[0.0, 0.0, 0.10]);
 
-    let image = image::load(Cursor::new(&include_bytes!("../terrain.png")),
+    let terrain_image = image::load(Cursor::new(&include_bytes!("../terrain.png")),
                         image::ImageFormat::Png).unwrap().to_rgba8();
-    let image_dimensions = image.dimensions();
-    let image = glium::texture::RawImage2d::from_raw_rgba_reversed(&image.into_raw(), image_dimensions);
-    let terrain_texture = glium::texture::SrgbTexture2d::new(&display, image).unwrap();
+    let terrain_image_dimensions = terrain_image.dimensions();
+    let terrain_image = glium::texture::RawImage2d::from_raw_rgba_reversed(&terrain_image.into_raw(), terrain_image_dimensions);
+    let terrain_texture = glium::texture::SrgbTexture2d::new(&display, terrain_image).unwrap();
+    let behavior = glium::uniforms::SamplerBehavior {
+        minify_filter: MinifySamplerFilter::Nearest,
+        magnify_filter: MagnifySamplerFilter::Nearest,
+        ..Default::default()
+    };
+
+    let crosshair_image = image::load(Cursor::new(&include_bytes!("../crosshair.png")),
+                        image::ImageFormat::Png).unwrap().to_rgba8();
+    let crosshair_image_dimensions = crosshair_image.dimensions();
+    let crosshair_image = glium::texture::RawImage2d::from_raw_rgba_reversed(&crosshair_image.into_raw(), crosshair_image_dimensions);
+    let crosshair_texture = glium::texture::SrgbTexture2d::new(&display, crosshair_image).unwrap();
     let behavior = glium::uniforms::SamplerBehavior {
         minify_filter: MinifySamplerFilter::Nearest,
         magnify_filter: MagnifySamplerFilter::Nearest,
@@ -95,9 +115,9 @@ fn main() {
     let mut mesh_vertex_buffer = VertexBuffer::new(&display, mesh.as_slice()).unwrap();
 
     event_loop.run(move |ev, _, control_flow| {
-        let next_frame_time = std::time::Instant::now() +
+        /*let next_frame_time = std::time::Instant::now() +
         std::time::Duration::from_nanos(16_666_667);
-        *control_flow = glutin::event_loop::ControlFlow::WaitUntil(next_frame_time);
+        *control_flow = glutin::event_loop::ControlFlow::WaitUntil(next_frame_time);*/
         let mut target = display.draw();
 
         target.clear_color_and_depth((0.1, 0.15, 0.9, 1.0), 1.0);
@@ -120,6 +140,20 @@ fn main() {
                     u_position: camera.position,
                     u_direction: camera.forward,
                     tex: glium::uniforms::Sampler(&terrain_texture, behavior),
+                },
+                &params,
+            )
+            .unwrap();
+
+            let dimensions = target.get_dimensions();
+            target
+            .draw(
+                &ui_crosshair_buffer,
+                glium::index::NoIndices(glium::index::PrimitiveType::TrianglesList),
+                &ui_shader,
+                &uniform! {
+                    u_dimensions: [dimensions.0 as f32, dimensions.1 as f32],
+                    u_texture: glium::uniforms::Sampler(&crosshair_texture, behavior),
                 },
                 &params,
             )

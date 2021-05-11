@@ -88,7 +88,7 @@ pub fn perspective_matrix(target: &Frame) -> [[f32; 4]; 4] {
     let (width, height) = target.get_dimensions();
     let aspect_ratio = height as f32 / width as f32;
 
-    let fov: f32 = 3.141592 / 4.0;
+    let fov: f32 = 3.141592 / 3.0;
     let zfar = 1024.0;
     let znear = 0.1;
 

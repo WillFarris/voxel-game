@@ -2,13 +2,6 @@ pub const _X_VECTOR: [f32; 3] = [1.0, 0.0, 0.0];
 pub const Y_VECTOR: [f32; 3] = [0.0, 1.0, 0.0];
 pub const _Z_VECTOR: [f32; 3] = [0.0, 0.0, 1.0];
 
-pub const IDENTITY_MAT4: [[f32; 4]; 4] = [
-    [1.0, 0.0, 0.0, 0.0],
-    [0.0, 1.0, 0.0, 0.0],
-    [0.0, 0.0, 1.0, 0.0],
-    [0.0, 0.0, 0.0, 1.0],
-];
-
 pub fn quaternion_rotate(vec: &[f32; 3], angle: f32, axis: &[f32; 3]) -> [f32; 3] {
     let q = [
         (angle / 2.0).cos(),

@@ -2,7 +2,6 @@
 #[derive(Clone, Copy)]
 pub enum TextureType {
     Single(usize, usize),
-    TopAndSide((usize, usize), (usize, usize))
 }
 
 #[derive(Copy, Clone)]

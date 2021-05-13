@@ -1,11 +1,13 @@
 use crate::vectormath::*;
-use glium::{Frame, Surface};
+use cgmath::{Matrix4, Vector3, Vector4};
+
 
 pub struct Camera {
     pub position: [f32; 3],
     pub forward: [f32; 3],
     pub right: [f32; 3],
     pub up: [f32; 3],
+    move_speed: f32,
 }
 
 impl Camera {
@@ -17,26 +19,36 @@ impl Camera {
             forward: n_direction,
             right: [0.0, 0.0, 0.0],
             up: [0.0, 0.0, 0.0],
+            move_speed: 1.0,
         };
         s.calculate_normals();
         s
     }
 
-    pub fn view_matrix(&self) -> [[f32; 4]; 4] {
-        let p = [
-            -self.position[0] * self.right[0] - self.position[1] * self.right[1] - self.position[2] * self.right[2],
-            
-            -self.position[0] * self.up[0] - self.position[1] * self.up[1] - self.position[2] * self.up[2],
+    pub fn set_move_speed(&mut self, speed: f32) {
+        self.move_speed = speed;
+    }
 
-            -self.position[0] * self.forward[0] - self.position[1] * self.forward[1] - self.position[2] * self.forward[2],
+    pub fn view_matrix(&self) -> Matrix4<f32> {
+        let p = [
+            (-self.position[0] * self.right[0] - self.position[1] * self.right[1] - self.position[2] * self.right[2]),            
+            (-self.position[0] * self.up[0] - self.position[1] * self.up[1] - self.position[2] * self.up[2]),
+            (-self.position[0] * self.forward[0] - self.position[1] * self.forward[1] - self.position[2] * self.forward[2]),
         ];
 
-        [
-            [self.right[0], self.up[0], self.forward[0], 0.0],
-            [self.right[1], self.up[1], self.forward[1], 0.0],
-            [self.right[2], self.up[2], self.forward[2], 0.0],
-            [p[0], p[1], p[2], 1.0],
-        ]
+        Matrix4::from_cols(
+            Vector4::new(self.right[0], self.up[0], self.forward[0], 0.0),
+            Vector4::new(self.right[1], self.up[1], self.forward[1], 0.0),
+            Vector4::new(self.right[2], self.up[2], self.forward[2], 0.0),
+            Vector4::new(p[0], p[1], p[2], 1.0),
+        )
+
+        /*Matrix4::from_cols(
+            Vector4::new(self.right[0], self.right[1], self.right[2], p[0]),
+            Vector4::new(self.up[0], self.up[1], self.up[2], p[1]),
+            Vector4::new(self.forward[0], self.forward[1], self.forward[2], p[2]),
+            Vector4::new(0.0, 0.0, 0.0, 1.0),
+        )*/
     }
 
     fn calculate_normals(&mut self) {
@@ -46,13 +58,13 @@ impl Camera {
     }
 
     pub fn translate(&mut self, direction: &[f32; 3]) {
-        self.position[0] += direction[0];
-        self.position[1] += direction[1];
-        self.position[2] += direction[2];
+        self.position[0] += self.move_speed * direction[0];
+        self.position[1] += self.move_speed * direction[1];
+        self.position[2] += self.move_speed * direction[2];
 
-        self.forward[0] += direction[0];
-        self.forward[1] += direction[1];
-        self.forward[2] += direction[2];
+        self.forward[0] += self.move_speed * direction[0];
+        self.forward[1] += self.move_speed * direction[1];
+        self.forward[2] += self.move_speed * direction[2];
 
         self.calculate_normals();
     }
@@ -84,8 +96,8 @@ impl Camera {
     }
 }
 
-pub fn perspective_matrix(target: &Frame) -> [[f32; 4]; 4] {
-    let (width, height) = target.get_dimensions();
+pub fn perspective_matrix() -> Matrix4<f32> {
+    let (width, height) = (800.0, 600.0);//target.get_dimensions();
     let aspect_ratio = height as f32 / width as f32;
 
     let fov: f32 = 3.141592 / 3.0;
@@ -94,10 +106,10 @@ pub fn perspective_matrix(target: &Frame) -> [[f32; 4]; 4] {
 
     let f = 1.0 / (fov / 2.0).tan();
 
-    [
-        [f * aspect_ratio, 0.0, 0.0, 0.0],
-        [0.0, f, 0.0, 0.0],
-        [0.0, 0.0, (zfar + znear) / (zfar - znear), 1.0],
-        [0.0, 0.0, -(2.0 * zfar * znear) / (zfar - znear), 0.0],
-    ]
+    Matrix4::from_cols(
+        Vector4::new(f * aspect_ratio, 0.0, 0.0, 0.0),
+        Vector4::new(0.0, f, 0.0, 0.0),
+        Vector4::new(0.0, 0.0, (zfar + znear) / (zfar - znear), 1.0),
+        Vector4::new(0.0, 0.0, -(2.0 * zfar * znear) / (zfar - znear), 0.0),
+    )
 }

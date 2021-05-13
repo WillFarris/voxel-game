@@ -3,106 +3,55 @@ mod cube;
 mod vectormath;
 mod vertex;
 mod meshgen;
+mod mesh;
 mod block;
+mod util;
+mod shader;
+mod macros;
 
 use block::{Block, TextureType};
 use camera::*;
-use vertex::{Vertex, Vertex2D};
+use cgmath::{Matrix4, Vector2, Vector3};
+use glfw::Context;
+use mesh::{Mesh, Texture, texture_from_file};
+use meshgen::gen_chunk_mesh;
+use std::ffi::{CString, CStr};
+use vertex::Vertex;
 
-use std::fs::File;
-use std::io::{prelude::*, Cursor};
-use std::path::Path;
-use std::include_bytes;
+use std::sync::mpsc::Receiver;
 
-extern crate glium;
-use glium::{Display, Program, ProgramCreationError, Surface, VertexBuffer, glutin::{self, event::{ElementState, VirtualKeyCode}}, uniform, uniforms::{MagnifySamplerFilter, MinifySamplerFilter}};
+
 
 extern crate image;
+extern crate glfw;
+extern crate gl;
 
 const SCENE_LIGHT: [f32; 3] = [-1.0, 0.701, -1.0];
 
-fn load_shader(display: &Display, vertex_path: &str, fragment_path: &str) -> Result<Program, ProgramCreationError> {
-    let mut tri_vertex_shader_file = match File::open(Path::new(vertex_path)) {
-        Err(why) => panic!("Could not open file: {}", why),
-        Ok(file) => file,
-    };
-    let mut tri_vertex_shader_str = String::new();
-    match tri_vertex_shader_file.read_to_string(&mut tri_vertex_shader_str) {
-        Err(why) => panic!("Could not read file: {}", why),
-        Ok(_) => (),
-    }
-    let mut tri_fragment_shader_file = match File::open(Path::new(fragment_path)) {
-        Err(why) => panic!("Could not open file: {}", why),
-        Ok(file) => file,
-    };
-    let mut tri_fragment_shader_str = String::new();
-    match tri_fragment_shader_file.read_to_string(&mut tri_fragment_shader_str) {
-        Err(why) => panic!("Could not read file: {}", why),
-        Ok(_) => (),
-    }
-
-    let shader = glium::Program::from_source(
-        display,
-        tri_vertex_shader_str.as_str(),
-        tri_fragment_shader_str.as_str(),
-        None,
-    );
-    shader
-}
+const WIDTH: u32 = 1280;
+const HEIGHT: u32 = 1024;
 
 fn main() {
-    let event_loop = glutin::event_loop::EventLoop::new();
-    let wb = glutin::window::WindowBuilder::new().with_title("A game").with_maximized(false);
-    let cb = glutin::ContextBuilder::new().with_depth_buffer(24);
-    let display = glium::Display::new(wb, cb, &event_loop).unwrap();
-    let params = glium::DrawParameters {
-        depth: glium::Depth {
-            test: glium::draw_parameters::DepthTest::IfLess,
-            write: true,
-            ..Default::default()
-        },
-        ..Default::default()
-    };
-    let cube_shader = load_shader(&display, "shaders/cube_vertex.glsl", "shaders/cube_fragment.glsl").unwrap();
-    let ui_shader = load_shader(&display, "shaders/ui_vertex.glsl", "shaders/ui_fragment.glsl").unwrap();
 
-    let ui_crosshair_mesh = [
-        Vertex2D { position: (-0.01, 0.01), tex_coords: (0.0, 1.0) },
-        Vertex2D { position: (-0.01, -0.01), tex_coords: (0.0, 0.0) },
-        Vertex2D { position: (0.01, 0.01), tex_coords: (1.0, 1.0) },
+    let mut glfw = glfw::init(glfw::FAIL_ON_ERRORS).unwrap();
 
-        Vertex2D { position: (0.01, 0.01), tex_coords: (1.0, 1.0) },
-        Vertex2D { position: (0.01, -0.01), tex_coords: (1.0, 0.0) },
-        Vertex2D { position: (-0.01, -0.01), tex_coords: (0.0, 0.0) },
-    ];
-    let ui_crosshair_buffer = glium::VertexBuffer::new(&display, &ui_crosshair_mesh).unwrap();
+    let (mut window, events) = glfw.create_window(WIDTH, HEIGHT, "", glfw::WindowMode::Windowed).expect("Failed to create GLFW window");
 
-    let mut cube1 = cube::Cube::new([-1.0, 5.0, 5.0], &display, None, [0.9, 0.2, 0.2]);
-    //let mut cube2 = cube::Cube::new([1.0, 0.0, 5.0], &display, None, [0.22, 0.6, 0.1]);
-    let mut camera = Camera::new(&[8.0, 6.0, 0.0], &[0.0, 0.0, 0.10]);
 
-    let terrain_image = image::load(Cursor::new(&include_bytes!("../terrain.png")),
-                        image::ImageFormat::Png).unwrap().to_rgba8();
-    let terrain_image_dimensions = terrain_image.dimensions();
-    let terrain_image = glium::texture::RawImage2d::from_raw_rgba_reversed(&terrain_image.into_raw(), terrain_image_dimensions);
-    let terrain_texture = glium::texture::SrgbTexture2d::new(&display, terrain_image).unwrap();
-    let behavior = glium::uniforms::SamplerBehavior {
-        minify_filter: MinifySamplerFilter::Nearest,
-        magnify_filter: MagnifySamplerFilter::Nearest,
-        ..Default::default()
-    };
+    window.make_current();
+    window.set_key_polling(true);
+    window.set_cursor_pos_polling(true);
+    window.set_mouse_button_polling(true);
+    window.set_cursor_pos(WIDTH as f64/2.0, HEIGHT as f64/2.0);
+    //window.set_cursor_mode(glfw::CursorMode::Hidden);
 
-    let crosshair_image = image::load(Cursor::new(&include_bytes!("../crosshair.png")),
-                        image::ImageFormat::Png).unwrap().to_rgba8();
-    let crosshair_image_dimensions = crosshair_image.dimensions();
-    let crosshair_image = glium::texture::RawImage2d::from_raw_rgba_reversed(&crosshair_image.into_raw(), crosshair_image_dimensions);
-    let crosshair_texture = glium::texture::SrgbTexture2d::new(&display, crosshair_image).unwrap();
-    let behavior = glium::uniforms::SamplerBehavior {
-        minify_filter: MinifySamplerFilter::Nearest,
-        magnify_filter: MagnifySamplerFilter::Nearest,
-        ..Default::default()
-    };
+    gl::load_with(|symbol| window.get_proc_address(symbol) as *const _);
 
+    let shader = shader::Shader::new("shaders/cube_vertex.glsl", "shaders/cube_fragment.glsl");
+
+
+    //let mut cube1 = cube::Cube::new([-1.0, 5.0, 5.0], [0.9, 0.2, 0.2]);
+    //let mut camera = Camera::new(&[8.0, 6.0, 0.0], &[0.0, 0.0, 1.0]);   
     let mut chunk: [[[Block; 16]; 16]; 16] = [[[Block::default(); 16]; 16]; 16];
     for x in 0..16 {
         for y in 0..4 {
@@ -111,139 +60,107 @@ fn main() {
             }
         }
     }
-    let mut mesh: Vec<Vertex> = meshgen::gen_chunk_mesh(&chunk);
-    let mut mesh_vertex_buffer = VertexBuffer::new(&display, mesh.as_slice()).unwrap();
 
-    event_loop.run(move |ev, _, control_flow| {
-        /*let next_frame_time = std::time::Instant::now() +
-        std::time::Duration::from_nanos(16_666_667);
-        *control_flow = glutin::event_loop::ControlFlow::WaitUntil(next_frame_time);*/
-        let mut target = display.draw();
+    let texture_id = texture_from_file("terrain.png", ".");
+    let mesh_texture = Texture {id: texture_id};
+    let mut mesh_vertices = gen_chunk_mesh(&chunk);
+    let mut mesh = mesh::Mesh::new(mesh_vertices, &mesh_texture, &shader);
 
-        target.clear_color_and_depth((0.1, 0.15, 0.9, 1.0), 1.0);
+    let mut camera = Camera::new(&[-8.0, 11.0, -9.0], &[-0.64, 0.545, -0.52]);
+    camera.set_move_speed(0.5);
 
+    unsafe {
+        gl::Enable(gl::DEPTH_TEST);
+    }
+    
+    while !window.should_close() {
+        unsafe {
+            
+            gl::ClearColor(0.1, 0.2, 0.5, 1.0);
+            gl::ClearColor(0.1, 0.1, 0.1, 1.0);
+            gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
 
-        cube1.draw(&mut target, &params, &camera, &cube_shader);
+            
+            shader.use_program();
+
+            let projection: Matrix4<f32> = cgmath::perspective(cgmath::Deg(90.0), WIDTH as f32 / HEIGHT as f32, 0.1, 100.0);
+            let view = camera.view_matrix();
+            let model = Matrix4::from_scale(1.0);
+
+            shader.set_mat4(c_str!("perspective_matrix"), &projection);
+            shader.set_mat4(c_str!("view_matrix"), &view);
+            shader.set_mat4(c_str!("model_matrix"), &model);
+            mesh.draw();
+
+        }
         
         
-        target
-            .draw(
-                &mesh_vertex_buffer,
-                glium::index::NoIndices(glium::index::PrimitiveType::TrianglesList),
-                &cube_shader,
-                &uniform! {
-                    model_matrix: vectormath::IDENTITY_MAT4,
-                    view_matrix: camera.view_matrix(),
-                    perspective_matrix: crate::camera::perspective_matrix(&target),
-                    light: crate::SCENE_LIGHT,
-                    u_color: [0.3, 0.8, 0.3f32],
-                    u_position: camera.position,
-                    u_direction: camera.forward,
-                    tex: glium::uniforms::Sampler(&terrain_texture, behavior),
+        window.swap_buffers();
+        glfw.poll_events();
+        for (_, event) in glfw::flush_messages(&events) {
+            match event {
+                glfw::WindowEvent::CursorPos(x, y) => {
+                    let delta = (WIDTH as f64/2.0-x, HEIGHT as f64/2.0-y);
+                    window.set_cursor_pos(WIDTH as f64/2.0, HEIGHT as f64/2.0);
+                    camera.rotate_on_x_axis(0.001 * delta.1 as f32);
+                    camera.rotate_on_y_axis(0.001 * delta.0 as f32);
                 },
-                &params,
-            )
-            .unwrap();
-
-            let dimensions = target.get_dimensions();
-            target
-            .draw(
-                &ui_crosshair_buffer,
-                glium::index::NoIndices(glium::index::PrimitiveType::TrianglesList),
-                &ui_shader,
-                &uniform! {
-                    u_dimensions: [dimensions.0 as f32, dimensions.1 as f32],
-                    u_texture: glium::uniforms::Sampler(&crosshair_texture, behavior),
-                },
-                &params,
-            )
-            .unwrap();
-
-        target.finish().unwrap();
-
-        match ev {
-            glutin::event::Event::WindowEvent { event, .. } => match event {
-                glutin::event::WindowEvent::CloseRequested => {
-                    *control_flow = glutin::event_loop::ControlFlow::Exit;
-                    return;
-                }
-                _ => return,
-            },
-            glutin::event::Event::DeviceEvent { event, .. } => match event {
-                glutin::event::DeviceEvent::Key(k) => match k.virtual_keycode {
-                    _ => {
-                        if let Some(code) = k.virtual_keycode {
-                            //println!("KeyCode: {:?}", code);
-                            match code {
-                                VirtualKeyCode::W => camera.move_direction(&[0.0, 0.0, 0.5]),
-                                VirtualKeyCode::S => camera.move_direction(&[0.0, 0.0, -0.5]),
-                                VirtualKeyCode::A => camera.move_direction(&[-0.5, 0.0, 0.0]),
-                                VirtualKeyCode::D => camera.move_direction(&[0.5, 0.0, 0.0]),
-                                VirtualKeyCode::Space => camera.move_direction(&[0.0, 0.5, 0.0]),
-                                VirtualKeyCode::LShift => camera.move_direction(&[0.0, -0.5, 0.0]),
-
-                                VirtualKeyCode::Up => camera.rotate_on_x_axis(-0.05),
-                                VirtualKeyCode::Down => camera.rotate_on_x_axis(0.05),
-                                VirtualKeyCode::Left => camera.rotate_on_y_axis(-0.05),
-                                VirtualKeyCode::Right => camera.rotate_on_y_axis(0.05),
-
-                                VirtualKeyCode::C => {},
-                                VirtualKeyCode::Escape => *control_flow = glutin::event_loop::ControlFlow::Exit,
-
-                                _ => (),
-                            }
-                        }
-                    }
-                },
-                glutin::event::DeviceEvent::Button { button, state } => match button {
-                    1 => {
-                        if state == ElementState::Pressed {
-                            let mut ray = (
-                                camera.position[0],
-                                camera.position[1],
-                                camera.position[2],
-                            );
-                            let mut hit = false;
-                            let hit_radius = 20;
-                            let mut steps = 0;
-                            while !hit && steps < hit_radius {
-                                for x in 0..15 {
-                                    for y in 0..15 {
-                                        for z in 0..15 {
-                                            if ray.0 > (x as f32)-0.5 && ray.0 < (x as f32)+0.5
-                                            && ray.1 > (y as f32)-0.5 && ray.1 < (y as f32)+0.5
-                                            && ray.2 > (z as f32)-0.5 && ray.2 < (z as f32)+0.5 {
-                                                println!("Chunk intersection with block at ({}, {}, {}): {}", x, y, z, chunk[x][y][z].id);
-                                                if chunk[x][y][z].id != 0 {
-                                                    hit = true;
-                                                    //cube1.translate(&[x as f32, y as f32, z as f32]);
-                                                    chunk[x][y][z] = Block::default();
-                                                    mesh = meshgen::gen_chunk_mesh(&chunk);
-                                                    mesh_vertex_buffer = VertexBuffer::new(&display, mesh.as_slice()).unwrap();
-                                                    steps = hit_radius;
-                                                    break;
+                glfw::WindowEvent::MouseButton(button, action, modifiers) => {
+                    match button {
+                        glfw::MouseButton::Button1 => {
+                            if action == glfw::Action::Press {
+                                let mut ray = (
+                                    camera.position[0],
+                                    camera.position[1],
+                                    camera.position[2],
+                                );
+                                let mut hit = false;
+                                let hit_radius = 20;
+                                let mut steps = 0;
+                                while !hit && steps < hit_radius {
+                                    for x in 0..16 {
+                                        for y in 0..16 {
+                                            for z in 0..16 {
+                                                if ray.0 > (x as f32)-0.5 && ray.0 < (x as f32)+0.5
+                                                && ray.1 > (y as f32)-0.5 && ray.1 < (y as f32)+0.5
+                                                && ray.2 > (z as f32)-0.5 && ray.2 < (z as f32)+0.5 {
+                                                    println!("Chunk intersection with block at ({}, {}, {}): {}", x, y, z, chunk[x][y][z].id);
+                                                    if chunk[x][y][z].id != 0 {
+                                                        hit = true;
+                                                        chunk[x][y][z] = Block::default();
+                                                        mesh_vertices = meshgen::gen_chunk_mesh(&chunk);
+                                                        mesh = mesh::Mesh::new(mesh_vertices, &mesh_texture, &shader);
+                                                        steps = hit_radius;
+                                                        break;
+                                                    }
                                                 }
                                             }
                                         }
                                     }
+                                    ray.0 += camera.forward[0];
+                                    ray.1 += camera.forward[1];
+                                    ray.2 += camera.forward[2];
+                                    steps += 1;
                                 }
-                                ray.0 += 0.5 * camera.forward[0];
-                                ray.1 += 0.5 * camera.forward[1];
-                                ray.2 += 0.5 * camera.forward[2];
-                                steps += 1;
                             }
-                        }
-                    },
-                    _ => {}
-                }
-                glutin::event::DeviceEvent::Motion { axis, value } => match axis {
-                    0 => camera.rotate_on_y_axis(value as f32 * 0.001),
-                    1 => camera.rotate_on_x_axis(value as f32 * 0.001),
+                        },
+                        _ => {}
+                    }
+                },
+                glfw::WindowEvent::Key(key  , code, action, modifiers) => match key {
+                    glfw::Key::Escape => window.set_should_close(true),
+                    glfw::Key::W => camera.move_direction(&[0.0, 0.0, -1.0]),
+                    glfw::Key::S => camera.move_direction(&[0.0, 0.0, 1.0]),
+                    glfw::Key::D => camera.move_direction(&[1.0, 0.0, 0.0]),
+                    glfw::Key::A => camera.move_direction(&[-1.0, 0.0, 0.0]),
+                    glfw::Key::Space => camera.move_direction(&[0.0, 1.0, 0.0]),
+                    glfw::Key::LeftShift => camera.move_direction(&[0.0, -1.0, 0.0]),
                     _ => {}
                 },
                 _ => {}
-            },
-            _ => (),
+            }
         }
-    });
+        
+    }
+
 }

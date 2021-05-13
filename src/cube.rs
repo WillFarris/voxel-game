@@ -1,69 +1,67 @@
 use crate::{camera::Camera, vertex::*};
-use glium::vertex::VertexBuffer;
-use glium::{uniform, Program, Surface};
-use glium::{Display, DrawParameters, Texture2d};
+use cgmath::{Vector2, Vector3};
 
 const CUBE_VERTICES: [Vertex; 36] = [
-    Vertex { position: (-0.5,  0.5,  0.5), normal: ( 0.0,  0.0,  1.0), tex_coords: (0.0, 0.0) },   // Front-top-left
-    Vertex { position: ( 0.5,  0.5,  0.5), normal: ( 0.0,  0.0,  1.0), tex_coords: (0.0, 0.0) },   // Front-top-right
-    Vertex { position: (-0.5, -0.5,  0.5), normal: ( 0.0,  0.0,  1.0), tex_coords: (0.0, 0.0) },   // Front-bottom-left
+    Vertex { position: Vector3::new(-0.5,  0.5,  0.5), normal: Vector3::new( 0.0,  0.0,  1.0), tex_coords: Vector2::new(0.0, 0.0) },   // Front-top-left
+    Vertex { position: Vector3::new( 0.5,  0.5,  0.5), normal: Vector3::new( 0.0,  0.0,  1.0), tex_coords: Vector2::new(0.0, 0.0) },   // Front-top-right
+    Vertex { position: Vector3::new(-0.5, -0.5,  0.5), normal: Vector3::new( 0.0,  0.0,  1.0), tex_coords: Vector2::new(0.0, 0.0) },   // Front-bottom-left
 
-    Vertex { position: ( 0.5,  0.5,  0.5), normal: ( 0.0,  0.0,  1.0), tex_coords: (0.0, 0.0) },   // Front-top-right
-    Vertex { position: (-0.5, -0.5,  0.5), normal: ( 0.0,  0.0,  1.0), tex_coords: (0.0, 0.0) },   // Front-bottom-left
-    Vertex { position: ( 0.5, -0.5,  0.5), normal: ( 0.0,  0.0,  1.0), tex_coords: (0.0, 0.0) },   // Front-bottom-right
+    Vertex { position: Vector3::new( 0.5,  0.5,  0.5), normal: Vector3::new( 0.0,  0.0,  1.0), tex_coords: Vector2::new(0.0, 0.0) },   // Front-top-right
+    Vertex { position: Vector3::new(-0.5, -0.5,  0.5), normal: Vector3::new( 0.0,  0.0,  1.0), tex_coords: Vector2::new(0.0, 0.0) },   // Front-bottom-left
+    Vertex { position: Vector3::new( 0.5, -0.5,  0.5), normal: Vector3::new( 0.0,  0.0,  1.0), tex_coords: Vector2::new(0.0, 0.0) },   // Front-bottom-right
     
-    Vertex { position: (-0.5, -0.5,  0.5), normal: ( 0.0,  -1.0, 0.0), tex_coords: (0.0, 0.0) },   // Front-bottom-left
-    Vertex { position: ( 0.5, -0.5,  0.5), normal: ( 0.0,  -1.0, 0.0), tex_coords: (0.0, 0.0) },   // Front-bottom-right
-    Vertex { position: ( 0.5, -0.5, -0.5), normal: ( 0.0,  -1.0, 0.0), tex_coords: (0.0, 0.0) },   // Back-bottom-right
+    Vertex { position: Vector3::new(-0.5, -0.5,  0.5), normal: Vector3::new( 0.0,  -1.0, 0.0), tex_coords: Vector2::new(0.0, 0.0) },   // Front-bottom-left
+    Vertex { position: Vector3::new( 0.5, -0.5,  0.5), normal: Vector3::new( 0.0,  -1.0, 0.0), tex_coords: Vector2::new(0.0, 0.0) },   // Front-bottom-right
+    Vertex { position: Vector3::new( 0.5, -0.5, -0.5), normal: Vector3::new( 0.0,  -1.0, 0.0), tex_coords: Vector2::new(0.0, 0.0) },   // Back-bottom-right
 
-    Vertex { position: ( 0.5, -0.5,  0.5), normal: ( 1.0,  0.0, 0.0), tex_coords: (0.0, 0.0) },   // Front-bottom-right
-    Vertex { position: ( 0.5, -0.5, -0.5), normal: ( 1.0,  0.0, 0.0), tex_coords: (0.0, 0.0) },   // Back-bottom-right
-    Vertex { position: ( 0.5,  0.5,  0.5), normal: ( 1.0,  0.0, 0.0), tex_coords: (0.0, 0.0) },   // Front-top-right
+    Vertex { position: Vector3::new( 0.5, -0.5,  0.5), normal: Vector3::new( 1.0,  0.0, 0.0), tex_coords: Vector2::new(0.0, 0.0) },   // Front-bottom-right
+    Vertex { position: Vector3::new( 0.5, -0.5, -0.5), normal: Vector3::new( 1.0,  0.0, 0.0), tex_coords: Vector2::new(0.0, 0.0) },   // Back-bottom-right
+    Vertex { position: Vector3::new( 0.5,  0.5,  0.5), normal: Vector3::new( 1.0,  0.0, 0.0), tex_coords: Vector2::new(0.0, 0.0) },   // Front-top-right
 
-    Vertex { position: ( 0.5, -0.5, -0.5), normal: ( 1.0,  0.0, 0.0), tex_coords: (0.0, 0.0) },   // Back-bottom-right
-    Vertex { position: ( 0.5,  0.5,  0.5), normal: ( 1.0,  0.0, 0.0), tex_coords: (0.0, 0.0) },   // Front-top-right
-    Vertex { position: ( 0.5,  0.5, -0.5), normal: ( 1.0,  0.0, 0.0), tex_coords: (0.0, 0.0) },   // Back-top-right
+    Vertex { position: Vector3::new( 0.5, -0.5, -0.5), normal: Vector3::new( 1.0,  0.0, 0.0), tex_coords: Vector2::new(0.0, 0.0) },   // Back-bottom-right
+    Vertex { position: Vector3::new( 0.5,  0.5,  0.5), normal: Vector3::new( 1.0,  0.0, 0.0), tex_coords: Vector2::new(0.0, 0.0) },   // Front-top-right
+    Vertex { position: Vector3::new( 0.5,  0.5, -0.5), normal: Vector3::new( 1.0,  0.0, 0.0), tex_coords: Vector2::new(0.0, 0.0) },   // Back-top-right
 
-    Vertex { position: ( 0.5,  0.5,  0.5), normal: ( 0.0,  1.0, 0.0), tex_coords: (0.0, 0.0) },   // Front-top-right
-    Vertex { position: ( 0.5,  0.5, -0.5), normal: ( 0.0,  1.0, 0.0), tex_coords: (0.0, 0.0) },   // Back-top-right
-    Vertex { position: (-0.5,  0.5,  0.5), normal: ( 0.0,  1.0, 0.0), tex_coords: (0.0, 0.0) },   // Front-top-left
+    Vertex { position: Vector3::new( 0.5,  0.5,  0.5), normal: Vector3::new( 0.0,  1.0, 0.0), tex_coords: Vector2::new(0.0, 0.0) },   // Front-top-right
+    Vertex { position: Vector3::new( 0.5,  0.5, -0.5), normal: Vector3::new( 0.0,  1.0, 0.0), tex_coords: Vector2::new(0.0, 0.0) },   // Back-top-right
+    Vertex { position: Vector3::new(-0.5,  0.5,  0.5), normal: Vector3::new( 0.0,  1.0, 0.0), tex_coords: Vector2::new(0.0, 0.0) },   // Front-top-left
 
-    Vertex { position: ( 0.5,  0.5, -0.5), normal: ( 0.0,  1.0, 0.0), tex_coords: (0.0, 0.0) },   // Back-top-right
-    Vertex { position: (-0.5,  0.5,  0.5), normal: ( 0.0,  1.0, 0.0), tex_coords: (0.0, 0.0) },   // Front-top-left
-    Vertex { position: (-0.5,  0.5, -0.5), normal: ( 0.0,  1.0, 0.0), tex_coords: (0.0, 0.0) },   // Back-top-left
+    Vertex { position: Vector3::new( 0.5,  0.5, -0.5), normal: Vector3::new( 0.0,  1.0, 0.0), tex_coords: Vector2::new(0.0, 0.0) },   // Back-top-right
+    Vertex { position: Vector3::new(-0.5,  0.5,  0.5), normal: Vector3::new( 0.0,  1.0, 0.0), tex_coords: Vector2::new(0.0, 0.0) },   // Front-top-left
+    Vertex { position: Vector3::new(-0.5,  0.5, -0.5), normal: Vector3::new( 0.0,  1.0, 0.0), tex_coords: Vector2::new(0.0, 0.0) },   // Back-top-left
 
-    Vertex { position: (-0.5,  0.5,  0.5), normal: ( -1.0,  0.0, 0.0), tex_coords: (0.0, 0.0) },   // Front-top-left
-    Vertex { position: (-0.5,  0.5, -0.5), normal: ( -1.0,  0.0, 0.0), tex_coords: (0.0, 0.0) },   // Back-top-left
-    Vertex { position: (-0.5, -0.5,  0.5), normal: ( -1.0,  0.0, 0.0), tex_coords: (0.0, 0.0) },   // Front-bottom-left
+    Vertex { position: Vector3::new(-0.5,  0.5,  0.5), normal: Vector3::new( -1.0,  0.0, 0.0), tex_coords: Vector2::new(0.0, 0.0) },   // Front-top-left
+    Vertex { position: Vector3::new(-0.5,  0.5, -0.5), normal: Vector3::new( -1.0,  0.0, 0.0), tex_coords: Vector2::new(0.0, 0.0) },   // Back-top-left
+    Vertex { position: Vector3::new(-0.5, -0.5,  0.5), normal: Vector3::new( -1.0,  0.0, 0.0), tex_coords: Vector2::new(0.0, 0.0) },   // Front-bottom-left
 
-    Vertex { position: (-0.5,  0.5, -0.5), normal: ( -1.0,  0.0, 0.0), tex_coords: (0.0, 0.0) },   // Back-top-left
-    Vertex { position: (-0.5, -0.5,  0.5), normal: ( -1.0,  0.0, 0.0), tex_coords: (0.0, 0.0) },   // Front-bottom-left
-    Vertex { position: (-0.5, -0.5, -0.5), normal: ( -1.0,  0.0, 0.0), tex_coords: (0.0, 0.0) },   // Back-bottom-left
+    Vertex { position: Vector3::new(-0.5,  0.5, -0.5), normal: Vector3::new( -1.0,  0.0, 0.0), tex_coords: Vector2::new(0.0, 0.0) },   // Back-top-left
+    Vertex { position: Vector3::new(-0.5, -0.5,  0.5), normal: Vector3::new( -1.0,  0.0, 0.0), tex_coords: Vector2::new(0.0, 0.0) },   // Front-bottom-left
+    Vertex { position: Vector3::new(-0.5, -0.5, -0.5), normal: Vector3::new( -1.0,  0.0, 0.0), tex_coords: Vector2::new(0.0, 0.0) },   // Back-bottom-left
 
-    Vertex { position: (-0.5, -0.5,  0.5), normal: ( 0.0,  -1.0, 0.0), tex_coords: (0.0, 0.0) },   // Front-bottom-left
-    Vertex { position: (-0.5, -0.5, -0.5), normal: ( 0.0,  -1.0, 0.0), tex_coords: (0.0, 0.0) },   // Back-bottom-left
-    Vertex { position: ( 0.5, -0.5, -0.5), normal: ( 0.0,  -1.0, 0.0), tex_coords: (0.0, 0.0) },   // Back-bottom-right
+    Vertex { position: Vector3::new(-0.5, -0.5,  0.5), normal: Vector3::new( 0.0,  -1.0, 0.0), tex_coords: Vector2::new(0.0, 0.0) },   // Front-bottom-left
+    Vertex { position: Vector3::new(-0.5, -0.5, -0.5), normal: Vector3::new( 0.0,  -1.0, 0.0), tex_coords: Vector2::new(0.0, 0.0) },   // Back-bottom-left
+    Vertex { position: Vector3::new( 0.5, -0.5, -0.5), normal: Vector3::new( 0.0,  -1.0, 0.0), tex_coords: Vector2::new(0.0, 0.0) },   // Back-bottom-right
 
-    Vertex { position: (-0.5, -0.5, -0.5), normal: ( 0.0,  0.0, -1.0), tex_coords: (0.0, 0.0) },   // Back-bottom-left
-    Vertex { position: ( 0.5, -0.5, -0.5), normal: ( 0.0,  0.0, -1.0), tex_coords: (0.0, 0.0) },   // Back-bottom-right
-    Vertex { position: (-0.5,  0.5, -0.5), normal: ( 0.0,  0.0, -1.0), tex_coords: (0.0, 0.0) },   // Back-top-left
+    Vertex { position: Vector3::new(-0.5, -0.5, -0.5), normal: Vector3::new( 0.0,  0.0, -1.0), tex_coords: Vector2::new(0.0, 0.0) },   // Back-bottom-left
+    Vertex { position: Vector3::new( 0.5, -0.5, -0.5), normal: Vector3::new( 0.0,  0.0, -1.0), tex_coords: Vector2::new(0.0, 0.0) },   // Back-bottom-right
+    Vertex { position: Vector3::new(-0.5,  0.5, -0.5), normal: Vector3::new( 0.0,  0.0, -1.0), tex_coords: Vector2::new(0.0, 0.0) },   // Back-top-left
 
-    Vertex { position: ( 0.5, -0.5, -0.5), normal: ( 0.0,  0.0, -1.0), tex_coords: (0.0, 0.0) },   // Back-bottom-right
-    Vertex { position: (-0.5,  0.5, -0.5), normal: ( 0.0,  0.0, -1.0), tex_coords: (0.0, 0.0) },   // Back-top-left
-    Vertex { position: ( 0.5,  0.5, -0.5), normal: ( 0.0,  0.0, -1.0), tex_coords: (0.0, 0.0) }     // Back-top-right
+    Vertex { position: Vector3::new( 0.5, -0.5, -0.5), normal: Vector3::new( 0.0,  0.0, -1.0), tex_coords: Vector2::new(0.0, 0.0) },   // Back-bottom-right
+    Vertex { position: Vector3::new(-0.5,  0.5, -0.5), normal: Vector3::new( 0.0,  0.0, -1.0), tex_coords: Vector2::new(0.0, 0.0) },   // Back-top-left
+    Vertex { position: Vector3::new( 0.5,  0.5, -0.5), normal: Vector3::new( 0.0,  0.0, -1.0), tex_coords: Vector2::new(0.0, 0.0) }     // Back-top-right
 ];
 
 pub struct Cube {
     position: [f32; 3],
     color: [f32; 3],
-    texture: Option<glium::Texture2d>,
+    //texture: Option<glium::Texture2d>,
 
     pub model_matrix: [[f32; 4]; 4],
-    vertices: VertexBuffer<Vertex>,
+    //vertices: VertexBuffer<Vertex>,
 }
 
 impl Cube {
-    pub fn new(position: [f32; 3], display: &Display, texture: Option<Texture2d>, color: [f32; 3]) -> Self {
+    pub fn new(position: [f32; 3], color: [f32; 3]) -> Self {
         Self {
             position,
             model_matrix: [
@@ -72,9 +70,7 @@ impl Cube {
                 [0.0, 0.0, 1.0, 0.0],
                 [position[0], position[1], position[2], 1.0],
             ],
-            texture,
             color,
-            vertices: glium::VertexBuffer::new(display, &CUBE_VERTICES).unwrap(),
         }
     }
 
@@ -88,7 +84,7 @@ impl Cube {
         self.model_matrix[3][2] = pos[2];
     }
 
-    pub fn draw(
+    /*pub fn draw(
         &self,
         target: &mut glium::Frame,
         params: &DrawParameters,
@@ -110,5 +106,5 @@ impl Cube {
                 &params,
             )
             .unwrap();
-    }
+    }*/
 }

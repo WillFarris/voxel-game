@@ -10,6 +10,7 @@ mod shader;
 mod macros;
 
 use block::{Block, TextureType};
+use rand::prelude::*;
 use camera::*;
 use cgmath::{Matrix4, Vector2, Vector3};
 use glfw::Context;
@@ -53,7 +54,7 @@ fn main() {
     for x in 0..16 {
         for y in 0..4 {
             for z in 0..16 {
-                chunk[x][y][z] = block::MOSSY_COBBLESTONE;
+                chunk[x][y][z] = if rand::random() { block::MOSSY_COBBLESTONE } else if rand::random() { block::WOOD_PLANK } else { block::DIAMOND };
             }
         }
     }

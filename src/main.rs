@@ -53,7 +53,7 @@ fn main() {
     for x in 0..16 {
         for y in 0..4 {
             for z in 0..16 {
-                chunk[x][y][z] = Block::new(1, Some(TextureType::Single(2,12)));
+                chunk[x][y][z] = block::MOSSY_COBBLESTONE;
             }
         }
     }

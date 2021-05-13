@@ -13,7 +13,7 @@ out vec3 normal;
 
 void main() {
 
-    vec3 light = vec3(0.3, 0.5, -0.701);
+    vec3 light = vec3(0.3, 0.7, -0.701);
 
 
     float diffuse = max(dot(normalize(v_normal), normalize(light)), 0.05);

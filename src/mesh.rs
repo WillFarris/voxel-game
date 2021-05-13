@@ -37,6 +37,9 @@ impl Mesh {
 
         gl::ActiveTexture(gl::TEXTURE0);
 
+        gl::TexParameterf(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::NEAREST as f32);
+        gl::TexParameterf(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::NEAREST as f32);
+
         let sampler = CString::new("texture_map").unwrap().as_ptr();
         gl::Uniform1i(gl::GetUniformLocation(shader.id, sampler), 0);
         gl::BindTexture(gl::TEXTURE_2D, self.texture.id);

@@ -20,8 +20,6 @@ use vertex::Vertex;
 
 use std::sync::mpsc::Receiver;
 
-
-
 extern crate image;
 extern crate glfw;
 extern crate gl;
@@ -51,7 +49,6 @@ fn main() {
 
 
     //let mut cube1 = cube::Cube::new([-1.0, 5.0, 5.0], [0.9, 0.2, 0.2]);
-    //let mut camera = Camera::new(&[8.0, 6.0, 0.0], &[0.0, 0.0, 1.0]);   
     let mut chunk: [[[Block; 16]; 16]; 16] = [[[Block::default(); 16]; 16]; 16];
     for x in 0..16 {
         for y in 0..4 {
@@ -66,7 +63,7 @@ fn main() {
     let mut mesh_vertices = gen_chunk_mesh(&chunk);
     let mut mesh = mesh::Mesh::new(mesh_vertices, &mesh_texture, &shader);
 
-    let mut camera = Camera::new(&[-8.0, 11.0, -9.0], &[-0.64, 0.545, -0.52]);
+    let mut camera = Camera::new(Vector3::new(-8.0, 11.0, -9.0), Vector3::new(0.64, 0.545, 0.52));
     camera.set_move_speed(0.5);
 
     unsafe {
@@ -83,7 +80,7 @@ fn main() {
             
             shader.use_program();
 
-            let projection: Matrix4<f32> = cgmath::perspective(cgmath::Deg(90.0), WIDTH as f32 / HEIGHT as f32, 0.1, 100.0);
+            let projection: Matrix4<f32> = perspective_matrix();//cgmath::perspective(cgmath::Deg(90.0), WIDTH as f32 / HEIGHT as f32, 0.1, 100.0);
             let view = camera.view_matrix();
             let model = Matrix4::from_scale(1.0);
 
@@ -100,7 +97,7 @@ fn main() {
         for (_, event) in glfw::flush_messages(&events) {
             match event {
                 glfw::WindowEvent::CursorPos(x, y) => {
-                    let delta = (WIDTH as f64/2.0-x, HEIGHT as f64/2.0-y);
+                    let delta = (x-WIDTH as f64/2.0, y-HEIGHT as f64/2.0);
                     window.set_cursor_pos(WIDTH as f64/2.0, HEIGHT as f64/2.0);
                     camera.rotate_on_x_axis(0.001 * delta.1 as f32);
                     camera.rotate_on_y_axis(0.001 * delta.0 as f32);
@@ -137,9 +134,9 @@ fn main() {
                                             }
                                         }
                                     }
-                                    ray.0 += camera.forward[0];
-                                    ray.1 += camera.forward[1];
-                                    ray.2 += camera.forward[2];
+                                    ray.0 += 0.25 * camera.forward[0];
+                                    ray.1 += 0.25 * camera.forward[1];
+                                    ray.2 += 0.25 * camera.forward[2];
                                     steps += 1;
                                 }
                             }
@@ -149,12 +146,12 @@ fn main() {
                 },
                 glfw::WindowEvent::Key(key  , code, action, modifiers) => match key {
                     glfw::Key::Escape => window.set_should_close(true),
-                    glfw::Key::W => camera.move_direction(&[0.0, 0.0, -1.0]),
-                    glfw::Key::S => camera.move_direction(&[0.0, 0.0, 1.0]),
-                    glfw::Key::D => camera.move_direction(&[1.0, 0.0, 0.0]),
-                    glfw::Key::A => camera.move_direction(&[-1.0, 0.0, 0.0]),
-                    glfw::Key::Space => camera.move_direction(&[0.0, 1.0, 0.0]),
-                    glfw::Key::LeftShift => camera.move_direction(&[0.0, -1.0, 0.0]),
+                    glfw::Key::W => camera.move_direction(Vector3::new(0.0, 0.0, 1.0)),
+                    glfw::Key::S => camera.move_direction(Vector3::new(0.0, 0.0, -1.0)),
+                    glfw::Key::D => camera.move_direction(Vector3::new(1.0, 0.0, 0.0)),
+                    glfw::Key::A => camera.move_direction(Vector3::new(-1.0, 0.0, 0.0)),
+                    glfw::Key::Space => camera.move_direction(Vector3::new(0.0, 1.0, 0.0)),
+                    glfw::Key::LeftShift => camera.move_direction(Vector3::new(0.0, -1.0, 0.0)),
                     _ => {}
                 },
                 _ => {}

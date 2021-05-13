@@ -1,107 +1,100 @@
-pub const _X_VECTOR: [f32; 3] = [1.0, 0.0, 0.0];
-pub const Y_VECTOR: [f32; 3] = [0.0, 1.0, 0.0];
-pub const _Z_VECTOR: [f32; 3] = [0.0, 0.0, 1.0];
+use cgmath::{Matrix3, Vector3, Vector4};
 
-pub fn quaternion_rotate(vec: &[f32; 3], angle: f32, axis: &[f32; 3]) -> [f32; 3] {
-    let q = [
+pub const _X_VECTOR: Vector3<f32> = Vector3::new(1.0, 0.0, 0.0);
+pub const Y_VECTOR: Vector3<f32> = Vector3::new(0.0, 1.0, 0.0);
+pub const _Z_VECTOR: Vector3<f32> = Vector3::new(0.0, 0.0, 1.0);
+
+pub fn quaternion_rotate(vec: &Vector3<f32>, angle: f32, axis: &Vector3<f32>) -> Vector3<f32> {
+    let q = Vector4::new(
         (angle / 2.0).cos(),
-        axis[0] * (angle / 2.0).sin(),
-        axis[1] * (angle / 2.0).sin(),
-        axis[2] * (angle / 2.0).sin(),
-    ];
+        axis.x * (angle / 2.0).sin(),
+        axis.y * (angle / 2.0).sin(),
+        axis.z * (angle / 2.0).sin(),
+    );
 
-    let rotation_matrix: [[f32; 3]; 3] = [
-        [
-            q[0] * q[0] + q[1] * q[1] - q[2] * q[2] - q[3] * q[3],
-            2.0 * (q[1] * q[2] - q[0] * q[3]),
-            2.0 * (q[0] * q[2] + q[0] * q[2]),
-        ],
-        [
-            2.0 * (q[1] * q[2] + q[0] * q[3]),
-            q[0] * q[0] - q[1] * q[1] + q[2] * q[2] - q[3] * q[3],
-            2.0 * (q[2] * q[3] - q[0] * q[1]),
-        ],
-        [
-            2.0 * (q[1] * q[3] - q[0] * q[2]),
-            2.0 * (q[2] * q[3] + q[0] * q[1]),
-            q[0] * q[0] - q[1] * q[1] - q[2] * q[2] + q[3] * q[3],
-        ],
-    ];
+    let rotation_matrix: Matrix3<f32> = Matrix3::from_cols(
+        Vector3::new(
+            q.x * q.x + q.y * q.y - q.z * q.z - q[3] * q[3],
+            2.0 * (q.y * q.z - q.x * q[3]),
+            2.0 * (q.x * q.z + q.x * q.z),
+        ),
+        Vector3::new(
+            2.0 * (q.y * q.z + q.x * q[3]),
+            q.x * q.x - q.y * q.y + q.z * q.z - q[3] * q[3],
+            2.0 * (q.z * q[3] - q.x * q.y),
+        ),
+        Vector3::new(
+            2.0 * (q.y * q[3] - q.x * q.z),
+            2.0 * (q.z * q[3] + q.x * q.y),
+            q.x * q.x - q.y * q.y - q.z * q.z + q[3] * q[3],
+        ),
+    );
 
-    [
-        (vec[0] * rotation_matrix[0][0]
-            + vec[1] * rotation_matrix[0][1]
-            + vec[2] * rotation_matrix[0][2]),
-        (vec[0] * rotation_matrix[1][0]
-            + vec[1] * rotation_matrix[1][1]
-            + vec[2] * rotation_matrix[1][2]),
-        (vec[0] * rotation_matrix[2][0]
-            + vec[1] * rotation_matrix[2][1]
-            + vec[2] * rotation_matrix[2][2]),
-    ]
+    Vector3::new(
+        vec.x * rotation_matrix.x.x
+            + vec.y * rotation_matrix.x.y
+            + vec.z * rotation_matrix.x.z,
+        vec.x * rotation_matrix.y.x
+            + vec.y * rotation_matrix.y.y
+            + vec.z * rotation_matrix.y.z,
+        vec.x * rotation_matrix.z.x
+            + vec.y * rotation_matrix.z.y
+            + vec.z * rotation_matrix.z.z,
+        )
 }
 
-pub fn quaternion_rotation_matrix(axis: &[f32; 3], angle: f32) -> [[f32; 3]; 3] {
+pub fn quaternion_rotation_matrix(axis: &Vector3<f32>, angle: f32) -> Matrix3<f32> {
     
     let n_axis = normalize(axis);
-    let q = [
+    let q: Vector4<f32> = Vector4::new(
         (angle / 2.0).cos(),
-        n_axis[0] * (angle / 2.0).sin(),
-        n_axis[1] * (angle / 2.0).sin(),
-        n_axis[2] * (angle / 2.0).sin(),
-    ];
+        n_axis.x * (angle / 2.0).sin(),
+        n_axis.y * (angle / 2.0).sin(),
+        n_axis.z * (angle / 2.0).sin(),
+    );
 
-    [
-        [
-            q[0] * q[0] + q[1] * q[1] - q[2] * q[2] - q[3] * q[3],
-            2.0 * (q[1] * q[2] - q[0] * q[3]),
-            2.0 * (q[0] * q[2] + q[0] * q[2]),
-        ],
-        [
-            2.0 * (q[1] * q[2] + q[0] * q[3]),
-            q[0] * q[0] - q[1] * q[1] + q[2] * q[2] - q[3] * q[3],
-            2.0 * (q[2] * q[3] - q[0] * q[1]),
-        ],
-        [
-            2.0 * (q[1] * q[3] - q[0] * q[2]),
-            2.0 * (q[2] * q[3] + q[0] * q[1]),
-            q[0] * q[0] - q[1] * q[1] - q[2] * q[2] + q[3] * q[3],
-        ],
-    ]
+    Matrix3::from_cols(
+        Vector3::new(
+            q.x * q.x + q.y * q.y - q.z * q.z - q[3] * q[3],
+            2.0 * (q.y * q.z - q.x * q[3]),
+            2.0 * (q.x * q.z + q.x * q.z),
+        ),
+        Vector3::new(
+            2.0 * (q.y * q.z + q.x * q[3]),
+            q.x * q.x - q.y * q.y + q.z * q.z - q[3] * q[3],
+            2.0 * (q.z * q[3] - q.x * q.y),
+        ),
+        Vector3::new(
+            2.0 * (q.y * q[3] - q.x * q.z),
+            2.0 * (q.z * q[3] + q.x * q.y),
+            q.x * q.x - q.y * q.y - q.z * q.z + q[3] * q[3],
+        ),
+    )
 }
 
-pub fn transpose(mat: &[[f32; 3]; 3]) -> [[f32; 3]; 3] {
-    let mut t = [[0f32; 3]; 3];
-    for x in 0..3 {
-        for y in 0..3 {
-            t[x][y] = mat[y][x];
-        }
-    }
-    t
+
+pub fn len(vec: &Vector3<f32>) -> f32 {
+    (vec.x * vec.x + vec.y * vec.y + vec.z * vec.z).sqrt()
 }
 
-pub fn len(vec: &[f32; 3]) -> f32 {
-    (vec[0] * vec[0] + vec[1] * vec[1] + vec[2] * vec[2]).sqrt()
-}
-
-pub fn normalize(vec: &[f32; 3]) -> [f32; 3] {
+pub fn normalize(vec: &Vector3<f32>) -> Vector3<f32> {
     let len = len(vec);
-    [vec[0] / len, vec[1] / len, vec[2] / len]
+    Vector3::new(vec.x / len, vec.y / len, vec.z / len)
 }
 
-pub fn normalize_inplace(vec: [f32; 3]) -> [f32; 3] {
+pub fn normalize_inplace(vec: Vector3<f32>) -> Vector3<f32> {
     let len = len(&vec);
-    [vec[0] / len, vec[1] / len, vec[2] / len]
+    Vector3::new(vec.x / len, vec.y / len, vec.z / len)
 }
 
-pub fn cross(a: &[f32; 3], b: &[f32; 3]) -> [f32; 3] {
-    [
-        a[1] * b[2] - a[2] * b[1],
-        a[2] * b[0] - a[0] * b[2],
-        a[0] * b[1] - a[1] * b[0],
-    ]
+pub fn cross(a: &Vector3<f32>, b: &Vector3<f32>) -> Vector3<f32> {
+    Vector3::new(
+        a.y * b.z - a.z * b.y,
+        a.z * b.x - a.x * b.z,
+        a.x * b.y - a.y * b.x,
+    )
 }
 
-pub fn _dot(u: &[f32; 3], v: &[f32; 3]) -> f32 {
-    u[0] * v[0] + u[1] * v[1] + u[2] * v[2]
+pub fn _dot(u: &Vector3<f32>, v: &Vector3<f32>) -> f32 {
+    u.x * v.x + u.y * v.y + u.z * v.z
 }

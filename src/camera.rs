@@ -3,22 +3,22 @@ use cgmath::{Matrix4, Vector3, Vector4};
 
 
 pub struct Camera {
-    pub position: [f32; 3],
-    pub forward: [f32; 3],
-    pub right: [f32; 3],
-    pub up: [f32; 3],
+    pub position: Vector3<f32>,
+    pub forward: Vector3<f32>,
+    pub right: Vector3<f32>,
+    pub up: Vector3<f32>,
     move_speed: f32,
 }
 
 impl Camera {
-    pub fn new(position: &[f32; 3], direction: &[f32; 3]) -> Self {
+    pub fn new(position: Vector3<f32>, direction: Vector3<f32>) -> Self {
         let n_direction = normalize(&direction);
         let p = position.clone();
         let mut s = Self {
             position: p,
             forward: n_direction,
-            right: [0.0, 0.0, 0.0],
-            up: [0.0, 0.0, 0.0],
+            right: Vector3::new(0.0, 0.0, 0.0),
+            up: Vector3::new(0.0, 0.0, 0.0),
             move_speed: 1.0,
         };
         s.calculate_normals();
@@ -30,25 +30,18 @@ impl Camera {
     }
 
     pub fn view_matrix(&self) -> Matrix4<f32> {
-        let p = [
-            (-self.position[0] * self.right[0] - self.position[1] * self.right[1] - self.position[2] * self.right[2]),            
-            (-self.position[0] * self.up[0] - self.position[1] * self.up[1] - self.position[2] * self.up[2]),
-            (-self.position[0] * self.forward[0] - self.position[1] * self.forward[1] - self.position[2] * self.forward[2]),
-        ];
+        let p: Vector3<f32> = Vector3::new(
+            -self.position.x * self.right.x - self.position.y * self.right.y - self.position.z * self.right.z,            
+            -self.position.x * self.up.x - self.position.y * self.up.y - self.position.z * self.up.z,
+            -self.position.x * self.forward.x - self.position.y * self.forward.y - self.position.z * self.forward.z,
+        );
 
         Matrix4::from_cols(
-            Vector4::new(self.right[0], self.up[0], self.forward[0], 0.0),
-            Vector4::new(self.right[1], self.up[1], self.forward[1], 0.0),
-            Vector4::new(self.right[2], self.up[2], self.forward[2], 0.0),
-            Vector4::new(p[0], p[1], p[2], 1.0),
+            Vector4::new(self.right.x, self.up.x, self.forward.x, 0.0),
+            Vector4::new(self.right.y, self.up.y, self.forward.y, 0.0),
+            Vector4::new(self.right.z, self.up.z, self.forward.z, 0.0),
+            Vector4::new(p.x, p.y, p.z, 1.0),
         )
-
-        /*Matrix4::from_cols(
-            Vector4::new(self.right[0], self.right[1], self.right[2], p[0]),
-            Vector4::new(self.up[0], self.up[1], self.up[2], p[1]),
-            Vector4::new(self.forward[0], self.forward[1], self.forward[2], p[2]),
-            Vector4::new(0.0, 0.0, 0.0, 1.0),
-        )*/
     }
 
     fn calculate_normals(&mut self) {
@@ -57,30 +50,19 @@ impl Camera {
         self.up = normalize(&cross(&self.forward, &self.right));
     }
 
-    pub fn translate(&mut self, direction: &[f32; 3]) {
-        self.position[0] += self.move_speed * direction[0];
-        self.position[1] += self.move_speed * direction[1];
-        self.position[2] += self.move_speed * direction[2];
 
-        self.forward[0] += self.move_speed * direction[0];
-        self.forward[1] += self.move_speed * direction[1];
-        self.forward[2] += self.move_speed * direction[2];
+    pub fn move_direction(&mut self, direction: Vector3<f32>) {
+        self.position.x += self.right.x * direction.x;
+        self.position.y += self.right.y * direction.x;
+        self.position.z += self.right.z * direction.x;
 
-        self.calculate_normals();
-    }
+        self.position.x += self.up.x * direction.y;
+        self.position.y += self.up.y * direction.y;
+        self.position.z += self.up.z * direction.y;
 
-    pub fn move_direction(&mut self, direction: &[f32; 3]) {
-        self.position[0] += self.right[0] * direction[0];
-        self.position[1] += self.right[1] * direction[0];
-        self.position[2] += self.right[2] * direction[0];
-
-        self.position[0] += self.up[0] * direction[1];
-        self.position[1] += self.up[1] * direction[1];
-        self.position[2] += self.up[2] * direction[1];
-
-        self.position[0] += self.forward[0] * direction[2];
-        self.position[1] += self.forward[1] * direction[2];
-        self.position[2] += self.forward[2] * direction[2];
+        self.position.x += self.forward.x * direction.z;
+        self.position.y += self.forward.y * direction.z;
+        self.position.z += self.forward.z * direction.z;
 
         self.calculate_normals();
     }

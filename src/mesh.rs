@@ -1,12 +1,10 @@
 use crate::{shader::Shader, vertex::Vertex};
 use std::{ffi::c_void, path::Path};
-use std::{ffi::CString, mem, ptr};
+use std::{ffi::CString, ptr};
 use std::mem::size_of;
 use crate::offset_of;
 use gl::types::*;
 use image::{self, GenericImageView};
-use image::DynamicImage::*;
-use image::GenericImage;
 
 #[derive(Clone, Copy)]
 pub struct Texture {

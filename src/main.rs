@@ -5,27 +5,23 @@ mod vertex;
 mod meshgen;
 mod mesh;
 mod block;
-mod util;
 mod shader;
 mod macros;
+mod player;
 
-use block::{Block, TextureType};
-use rand::prelude::*;
+use block::{BLOCKS, Block};
 use camera::*;
-use cgmath::{Matrix4, Vector2, Vector3};
+use cgmath::{Matrix4, Vector3};
 use glfw::Context;
-use mesh::{Mesh, Texture, texture_from_file};
+use mesh::{Texture, texture_from_file};
 use meshgen::gen_chunk_mesh;
-use std::ffi::{CString, CStr};
-use vertex::Vertex;
-
-use std::sync::mpsc::Receiver;
+use std::ffi::CStr;
 
 extern crate image;
 extern crate glfw;
 extern crate gl;
 
-const SCENE_LIGHT: [f32; 3] = [-1.0, 0.701, -1.0];
+const _SCENE_LIGHT: [f32; 3] = [-1.0, 0.701, -1.0];
 
 const WIDTH: u32 = 1280;
 const HEIGHT: u32 = 1024;
@@ -50,11 +46,19 @@ fn main() {
 
 
     //let mut cube1 = cube::Cube::new([-1.0, 5.0, 5.0], [0.9, 0.2, 0.2]);
-    let mut chunk: [[[Block; 16]; 16]; 16] = [[[Block::default(); 16]; 16]; 16];
+    let mut chunk: [[[&Block; 16]; 16]; 16] = [[[&block::BLOCKS[0]; 16]; 16]; 16];
     for x in 0..16 {
-        for y in 0..4 {
+        for y in 0..16 {
             for z in 0..16 {
-                chunk[x][y][z] = if rand::random() { block::MOSSY_COBBLESTONE } else if rand::random() { block::WOOD_PLANK } else { block::DIAMOND };
+                if y < 5 {
+                   chunk[x][y][z] = &BLOCKS[1];
+                } else if y < 7 {
+                    chunk[x][y][z] = &BLOCKS[3];
+                } else if y < 8 {
+                    chunk[x][y][z] = &BLOCKS[2];
+                } else {
+                    chunk[x][y][z] = &BLOCKS[0];
+                }
             }
         }
     }
@@ -64,25 +68,28 @@ fn main() {
     let mut mesh_vertices = gen_chunk_mesh(&chunk);
     let mut mesh = mesh::Mesh::new(mesh_vertices, &mesh_texture, &shader);
 
-    let mut camera = Camera::new(Vector3::new(-8.0, 11.0, -9.0), Vector3::new(0.64, 0.545, 0.52));
-    camera.set_move_speed(0.5);
+    //let mut camera = Camera::new(Vector3::new(-8.0, 11.0, -9.0), Vector3::new(0.568056107, -0.487900823, 0.662770748));
+    let mut player = player::Player::new(Vector3::new(8.0, 11.0, 8.0), Vector3::new(0.568056107, -0.487900823, 0.662770748));
+    //camera.set_move_speed(0.5);
 
     unsafe {
         gl::Enable(gl::DEPTH_TEST);
     }
     
     while !window.should_close() {
+
+        player.update();
+
         unsafe {
             
-            gl::ClearColor(0.1, 0.2, 0.5, 1.0);
-            gl::ClearColor(0.1, 0.1, 0.1, 1.0);
+            gl::ClearColor(0.1, 0.4, 0.95, 1.0);
             gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
 
             
             shader.use_program();
 
             let projection: Matrix4<f32> = perspective_matrix();//cgmath::perspective(cgmath::Deg(90.0), WIDTH as f32 / HEIGHT as f32, 0.1, 100.0);
-            let view = camera.view_matrix();
+            let view = player.camera.view_matrix();
             let model = Matrix4::from_scale(1.0);
 
             shader.set_mat4(c_str!("perspective_matrix"), &projection);
@@ -100,17 +107,17 @@ fn main() {
                 glfw::WindowEvent::CursorPos(x, y) => {
                     let delta = (x-WIDTH as f64/2.0, y-HEIGHT as f64/2.0);
                     window.set_cursor_pos(WIDTH as f64/2.0, HEIGHT as f64/2.0);
-                    camera.rotate_on_x_axis(0.001 * delta.1 as f32);
-                    camera.rotate_on_y_axis(0.001 * delta.0 as f32);
+                    player.camera.rotate_on_x_axis(0.001 * delta.1 as f32);
+                    player.camera.rotate_on_y_axis(0.001 * delta.0 as f32);
                 },
                 glfw::WindowEvent::MouseButton(button, action, modifiers) => {
                     match button {
                         glfw::MouseButton::Button1 => {
                             if action == glfw::Action::Press {
                                 let mut ray = (
-                                    camera.position[0],
-                                    camera.position[1],
-                                    camera.position[2],
+                                    player.position[0],
+                                    player.position[1],
+                                    player.position[2],
                                 );
                                 let mut hit = false;
                                 let hit_radius = 20;
@@ -125,7 +132,7 @@ fn main() {
                                                     println!("Chunk intersection with block at ({}, {}, {}): {}", x, y, z, chunk[x][y][z].id);
                                                     if chunk[x][y][z].id != 0 {
                                                         hit = true;
-                                                        chunk[x][y][z] = Block::default();
+                                                        chunk[x][y][z] = &block::BLOCKS[0];
                                                         mesh_vertices = meshgen::gen_chunk_mesh(&chunk);
                                                         mesh = mesh::Mesh::new(mesh_vertices, &mesh_texture, &shader);
                                                         steps = hit_radius;
@@ -135,9 +142,9 @@ fn main() {
                                             }
                                         }
                                     }
-                                    ray.0 += 0.25 * camera.forward[0];
-                                    ray.1 += 0.25 * camera.forward[1];
-                                    ray.2 += 0.25 * camera.forward[2];
+                                    ray.0 += 0.25 * player.camera.forward[0];
+                                    ray.1 += 0.25 * player.camera.forward[1];
+                                    ray.2 += 0.25 * player.camera.forward[2];
                                     steps += 1;
                                 }
                             }
@@ -147,12 +154,12 @@ fn main() {
                 },
                 glfw::WindowEvent::Key(key  , code, action, modifiers) => match key {
                     glfw::Key::Escape => window.set_should_close(true),
-                    glfw::Key::W => camera.move_direction(Vector3::new(0.0, 0.0, 1.0)),
-                    glfw::Key::S => camera.move_direction(Vector3::new(0.0, 0.0, -1.0)),
-                    glfw::Key::D => camera.move_direction(Vector3::new(1.0, 0.0, 0.0)),
-                    glfw::Key::A => camera.move_direction(Vector3::new(-1.0, 0.0, 0.0)),
-                    glfw::Key::Space => camera.move_direction(Vector3::new(0.0, 1.0, 0.0)),
-                    glfw::Key::LeftShift => camera.move_direction(Vector3::new(0.0, -1.0, 0.0)),
+                    glfw::Key::W =>  { if action == glfw::Action::Press { player.move_direction(Vector3::new(0.0, 0.0, 1.0)) } else if action == glfw::Action::Release { player.stop_move_direction(Vector3::new(1.0, 1.0, 0.0)) } },
+                    glfw::Key::S =>  { if action == glfw::Action::Press { player.move_direction(Vector3::new(0.0, 0.0, -1.0)) } else if action == glfw::Action::Release { player.stop_move_direction(Vector3::new(1.0, 1.0, 0.0)) } },
+                    glfw::Key::D =>  { if action == glfw::Action::Press { player.move_direction(Vector3::new(1.0, 0.0, 0.0)) } else if action == glfw::Action::Release { player.stop_move_direction(Vector3::new(0.0, 1.0, 1.0)) } },
+                    glfw::Key::A =>  { if action == glfw::Action::Press { player.move_direction(Vector3::new(-1.0, 0.0, 0.0)) } else if action == glfw::Action::Release { player.stop_move_direction(Vector3::new(0.0, 1.0, 1.0)) } },
+                    glfw::Key::Space =>  { if action == glfw::Action::Press { player.move_direction(Vector3::new(0.0, 1.0, 0.0)) } else if action == glfw::Action::Release { player.stop_move_direction(Vector3::new(1.0, 0.0, 1.0)) } },
+                    glfw::Key::LeftShift =>  { if action == glfw::Action::Press { player.move_direction(Vector3::new(0.0, -1.0, 0.0)) } else if action == glfw::Action::Release { player.stop_move_direction(Vector3::new(1.0, 0.0, 1.0)) } },
                     _ => {}
                 },
                 _ => {}

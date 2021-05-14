@@ -5,24 +5,24 @@ const CUBE_FACES: [[Vertex; 6]; 6] = [
     
     // Facing positive-X
     [
-        Vertex { position: Vector3::new( 0.5, -0.5,  0.5), normal: Vector3::new( 1.0,  0.0, 0.0), tex_coords: Vector2::new(0.0, 1.0) },   // Front-bottom-right
+        Vertex { position: Vector3::new( 0.5, -0.5,  0.5), normal: Vector3::new( 1.0,  0.0, 0.0), tex_coords: Vector2::new(1.0, 0.0) },   // Front-bottom-right
         Vertex { position: Vector3::new( 0.5, -0.5, -0.5), normal: Vector3::new( 1.0,  0.0, 0.0), tex_coords: Vector2::new(0.0, 0.0) },   // Back-bottom-right
         Vertex { position: Vector3::new( 0.5,  0.5,  0.5), normal: Vector3::new( 1.0,  0.0, 0.0), tex_coords: Vector2::new(1.0, 1.0) },   // Front-top-right
     
         Vertex { position: Vector3::new( 0.5, -0.5, -0.5), normal: Vector3::new( 1.0,  0.0, 0.0), tex_coords: Vector2::new(0.0, 0.0) },   // Back-bottom-right
         Vertex { position: Vector3::new( 0.5,  0.5,  0.5), normal: Vector3::new( 1.0,  0.0, 0.0), tex_coords: Vector2::new(1.0, 1.0) },   // Front-top-right
-        Vertex { position: Vector3::new( 0.5,  0.5, -0.5), normal: Vector3::new( 1.0,  0.0, 0.0), tex_coords: Vector2::new(1.0, 0.0) },   // Back-top-right
+        Vertex { position: Vector3::new( 0.5,  0.5, -0.5), normal: Vector3::new( 1.0,  0.0, 0.0), tex_coords: Vector2::new(0.0, 1.0) },   // Back-top-right
     ],
 
     // Facing negative-X
     [
-        Vertex { position: Vector3::new(-0.5,  0.5,  0.5), normal: Vector3::new( -1.0,  0.0, 0.0), tex_coords: Vector2::new(1.0, 1.0) },   // Front-top-left
-        Vertex { position: Vector3::new(-0.5,  0.5, -0.5), normal: Vector3::new( -1.0,  0.0, 0.0), tex_coords: Vector2::new(1.0, 0.0) },   // Back-top-left
-        Vertex { position: Vector3::new(-0.5, -0.5,  0.5), normal: Vector3::new( -1.0,  0.0, 0.0), tex_coords: Vector2::new(0.0, 1.0) },   // Front-bottom-left
+        Vertex { position: Vector3::new(-0.5,  0.5,  0.5), normal: Vector3::new( -1.0,  0.0, 0.0), tex_coords: Vector2::new(0.0, 1.0) },   // Front-top-left
+        Vertex { position: Vector3::new(-0.5,  0.5, -0.5), normal: Vector3::new( -1.0,  0.0, 0.0), tex_coords: Vector2::new(1.0, 1.0) },   // Back-top-left
+        Vertex { position: Vector3::new(-0.5, -0.5,  0.5), normal: Vector3::new( -1.0,  0.0, 0.0), tex_coords: Vector2::new(0.0, 0.0) },   // Front-bottom-left
     
-        Vertex { position: Vector3::new(-0.5,  0.5, -0.5), normal: Vector3::new( -1.0,  0.0, 0.0), tex_coords: Vector2::new(1.0, 0.0) },   // Back-top-left
-        Vertex { position: Vector3::new(-0.5, -0.5,  0.5), normal: Vector3::new( -1.0,  0.0, 0.0), tex_coords: Vector2::new(0.0, 1.0) },   // Front-bottom-left
-        Vertex { position: Vector3::new(-0.5, -0.5, -0.5), normal: Vector3::new( -1.0,  0.0, 0.0), tex_coords: Vector2::new(0.0, 0.0) },   // Back-bottom-left
+        Vertex { position: Vector3::new(-0.5,  0.5, -0.5), normal: Vector3::new( -1.0,  0.0, 0.0), tex_coords: Vector2::new(1.0, 1.0) },   // Back-top-left
+        Vertex { position: Vector3::new(-0.5, -0.5,  0.5), normal: Vector3::new( -1.0,  0.0, 0.0), tex_coords: Vector2::new(0.0, 0.0) },   // Front-bottom-left
+        Vertex { position: Vector3::new(-0.5, -0.5, -0.5), normal: Vector3::new( -1.0,  0.0, 0.0), tex_coords: Vector2::new(1.0, 0.0) },   // Back-bottom-left
     ],
 
     // Facing positive-Y
@@ -87,7 +87,7 @@ fn push_face(position: &[f32; 3], face: usize, vertices: &mut Vec<Vertex>, texma
     }
 }
 
-pub fn gen_chunk_mesh(blocks: &[[[Block; 16]; 16]; 16]) -> Vec<Vertex> {
+pub fn gen_chunk_mesh(blocks: &[[[&Block; 16]; 16]; 16]) -> Vec<Vertex> {
     let mut vertices = Vec::new();
     //let mut normals = Vec::new();
 
@@ -99,36 +99,58 @@ pub fn gen_chunk_mesh(blocks: &[[[Block; 16]; 16]; 16]) -> Vec<Vertex> {
                     continue;
                 }
 
-                let tex_coords = if let Some(texture_type) = &cur.texture_map {
+
+                let tex_coords:[(usize, usize);  6] = if let Some(texture_type) = &cur.texture_map {
+                    let mut coords = [(0, 0); 6];
                     match texture_type {
-                        crate::block::TextureType::Single(x, y) => (*x, *y),
-                        _ => (0, 0),
+                        crate::block::TextureType::Single(x, y) => {
+                            for i in 0..6 {
+                                coords[i] = (*x, *y)
+                            }
+                        },
+                        crate::block::TextureType::TopAndSide((x_top, y_top), (x_side, y_side)) => {
+                            coords[0] = (*x_side, *y_side);
+                            coords[1] = (*x_side, *y_side);
+                            coords[2] = (*x_top, *y_top);
+                            coords[3] = (*x_side, *y_side);
+                            coords[4] = (*x_side, *y_side);
+                            coords[5] = (*x_side, *y_side);
+                        },
+                        crate::block::TextureType::TopSideBottom((x_top, y_top), (x_side, y_side), (x_bottom, y_bottom)) => {
+                            coords[0] = (*x_side, *y_side);
+                            coords[1] = (*x_side, *y_side);
+                            coords[2] = (*x_top, *y_top);
+                            coords[3] = (*x_bottom, *y_bottom);
+                            coords[4] = (*x_side, *y_side);
+                            coords[5] = (*x_side, *y_side);
+                        },
                     }
+                    coords
                 } else {
-                    (0, 0)
+                    [(0, 0); 6]
                 };
 
 
                 let position = [x as f32, y as f32, z as f32];
                 if x == 15 || blocks[x+1][y][z].id == 0 {
-                    push_face(&position, 0, &mut vertices, &tex_coords);
+                    push_face(&position, 0, &mut vertices, &tex_coords[0]);
                 }
                 if x == 0 || blocks[x-1][y][z].id == 0 {
-                    push_face(&position, 1, &mut vertices, &tex_coords)
+                    push_face(&position, 1, &mut vertices, &tex_coords[1])
                 }
 
                 if y == 15 || blocks[x][y+1][z].id == 0 {
-                    push_face(&position, 2, &mut vertices, &tex_coords);
+                    push_face(&position, 2, &mut vertices, &tex_coords[2]);
                 }
                 if y == 0 || blocks[x][y-1][z].id == 0 {
-                    push_face(&position, 3, &mut vertices, &tex_coords);
+                    push_face(&position, 3, &mut vertices, &tex_coords[3]);
                 }
 
                 if z == 15 || blocks[x][y][z+1].id == 0 {
-                    push_face(&position, 4, &mut vertices, &tex_coords);
+                    push_face(&position, 4, &mut vertices, &tex_coords[4]);
                 }
                 if z == 0 || blocks[x][y][z-1].id == 0 {
-                    push_face(&position, 5, &mut vertices, &tex_coords);
+                    push_face(&position, 5, &mut vertices, &tex_coords[5]);
                 }
             }
         }

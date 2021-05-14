@@ -7,7 +7,6 @@ pub struct Camera {
     pub forward: Vector3<f32>,
     pub right: Vector3<f32>,
     pub up: Vector3<f32>,
-    move_speed: f32,
 }
 
 impl Camera {
@@ -19,14 +18,9 @@ impl Camera {
             forward: n_direction,
             right: Vector3::new(0.0, 0.0, 0.0),
             up: Vector3::new(0.0, 0.0, 0.0),
-            move_speed: 1.0,
         };
         s.calculate_normals();
         s
-    }
-
-    pub fn set_move_speed(&mut self, speed: f32) {
-        self.move_speed = speed;
     }
 
     pub fn view_matrix(&self) -> Matrix4<f32> {
@@ -65,6 +59,10 @@ impl Camera {
         self.position.z += self.forward.z * direction.z;
 
         self.calculate_normals();
+    }
+
+    pub fn translate(&mut self, new_position: Vector3<f32>) {
+        self.position = new_position;
     }
 
     pub fn rotate_on_y_axis(&mut self, angle: f32) {

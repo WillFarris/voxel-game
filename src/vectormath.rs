@@ -43,7 +43,7 @@ pub fn quaternion_rotate(vec: &Vector3<f32>, angle: f32, axis: &Vector3<f32>) ->
         )
 }
 
-pub fn quaternion_rotation_matrix(axis: &Vector3<f32>, angle: f32) -> Matrix3<f32> {
+pub fn _quaternion_rotation_matrix(axis: &Vector3<f32>, angle: f32) -> Matrix3<f32> {
     
     let n_axis = normalize(axis);
     let q: Vector4<f32> = Vector4::new(

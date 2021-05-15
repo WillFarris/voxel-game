@@ -19,7 +19,7 @@ impl Player {
         Self {
             camera: Camera::new(position, forward),
             position,
-            move_speed: 1.0,
+            move_speed: 0.1,
             velocity: Vector3::new(0.0, 0.0, 0.0),
             grounded: false,
         }
@@ -29,25 +29,29 @@ impl Player {
         if self.grounded {
             self.velocity.y = 0.0;
         }
-        self.position += self.move_speed * self.velocity;        
+        self.position += self.move_speed * self.velocity;
 
         self.camera.translate(self.position);
     }
 
     pub fn move_direction(&mut self, direction: Vector3<f32>) {
-        self.velocity.x = self.camera.right.x * direction.x;
-        self.velocity.z = self.camera.right.z * direction.z;
+        self.velocity.x += self.camera.right.x * direction.x;
+        //self.velocity.y += self.camera.right.y * direction.x;
+        self.velocity.z += self.camera.right.z * direction.x;
 
-        self.velocity.x = self.camera.forward.x * direction.x;
-        self.velocity.z = self.camera.forward.z * direction.z;
+        self.velocity.x += self.camera.up.x * direction.y;
+        //self.velocity.y += self.camera.up.y * direction.y;
+        self.velocity.z += self.camera.up.z * direction.y;
+
+        self.velocity.x += self.camera.forward.x * direction.z;
+        //self.velocity.y += self.camera.forward.y * direction.z;
+        self.velocity.z += self.camera.forward.z * direction.z;
 
     }
 
     pub fn stop_move_direction(&mut self, direction: Vector3<f32>) {
-        self.velocity.x = self.camera.right.x * direction.x;
-        self.velocity.z = self.camera.right.z * direction.x;
-
-        self.velocity.x = self.camera.forward.x * direction.z;
-        self.velocity.z = self.camera.forward.z * direction.z;
+        self.velocity.x = 0.0;
+        self.velocity.y = 0.0;
+        self.velocity.z = 0.0;
     }
 }

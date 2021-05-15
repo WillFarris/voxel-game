@@ -87,17 +87,18 @@ fn push_face(position: &[f32; 3], face: usize, vertices: &mut Vec<Vertex>, texma
     }
 }
 
-pub fn gen_chunk_mesh(blocks: &[[[&Block; 16]; 16]; 16]) -> Vec<Vertex> {
+pub fn gen_chunk_mesh(blocks: &[[[usize; 16]; 16]; 16]) -> Vec<Vertex> {
     let mut vertices = Vec::new();
     //let mut normals = Vec::new();
 
     for x in 0..16 {
         for y in 0..16 {
             for z in 0..16 {
-                let cur = &blocks[x][y][z];
-                if cur.id == 0 {
+                let i = blocks[x][y][z];
+                if i == 0 {
                     continue;
                 }
+                let cur = &BLOCKS[i];
 
 
                 let tex_coords:[(usize, usize);  6] = if let Some(texture_type) = &cur.texture_map {
@@ -132,24 +133,24 @@ pub fn gen_chunk_mesh(blocks: &[[[&Block; 16]; 16]; 16]) -> Vec<Vertex> {
 
 
                 let position = [x as f32, y as f32, z as f32];
-                if x == 15 || blocks[x+1][y][z].id == 0 {
+                if x == 15 || blocks[x+1][y][z] == 0 {
                     push_face(&position, 0, &mut vertices, &tex_coords[0]);
                 }
-                if x == 0 || blocks[x-1][y][z].id == 0 {
+                if x == 0 || blocks[x-1][y][z] == 0 {
                     push_face(&position, 1, &mut vertices, &tex_coords[1])
                 }
 
-                if y == 15 || blocks[x][y+1][z].id == 0 {
+                if y == 15 || blocks[x][y+1][z] == 0 {
                     push_face(&position, 2, &mut vertices, &tex_coords[2]);
                 }
-                if y == 0 || blocks[x][y-1][z].id == 0 {
+                if y == 0 || blocks[x][y-1][z] == 0 {
                     push_face(&position, 3, &mut vertices, &tex_coords[3]);
                 }
 
-                if z == 15 || blocks[x][y][z+1].id == 0 {
+                if z == 15 || blocks[x][y][z+1] == 0 {
                     push_face(&position, 4, &mut vertices, &tex_coords[4]);
                 }
-                if z == 0 || blocks[x][y][z-1].id == 0 {
+                if z == 0 || blocks[x][y][z-1] == 0 {
                     push_face(&position, 5, &mut vertices, &tex_coords[5]);
                 }
             }

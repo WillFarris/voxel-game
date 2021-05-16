@@ -45,17 +45,13 @@ fn main() {
     let shader = shader::Shader::new("shaders/cube_vertex.glsl", "shaders/cube_fragment.glsl");
 
 
-    //let mut cube1 = cube::Cube::new([-1.0, 5.0, 5.0], [0.9, 0.2, 0.2]);
+    let mut cube1 = cube::Cube::new([-1.0, 5.0, 5.0], [0.9, 0.2, 0.2]);
     let mut chunk: [[[usize; 16]; 16]; 16] = [[[0; 16]; 16]; 16];
     for x in 0..16 {
         for y in 0..16 {
             for z in 0..16 {
-                if y < 5 {
+                if y == 0 {
                    chunk[x][y][z] = 1;
-                } else if y < 7 {
-                    chunk[x][y][z] = 3;
-                } else if y < 8 {
-                    chunk[x][y][z] = 2;
                 } else {
                     chunk[x][y][z] = 0;
                 }
@@ -117,9 +113,10 @@ fn main() {
                         glfw::MouseButton::Button1 => {
                             if action == glfw::Action::Press {
                                 if let Some(index) = player.dda(&chunk) {
-                                    chunk[index.x][index.y][index.z] = 0;
+                                    chunk[index.x as usize][index.y as usize][index.z as usize] = 0;
                                     mesh_vertices = meshgen::gen_chunk_mesh(&chunk);
                                     mesh = mesh::Mesh::new(mesh_vertices, &mesh_texture, &shader);
+                                    println!("block hit: {:?}", index);
                                 }
                             }
                         },

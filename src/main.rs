@@ -47,13 +47,20 @@ fn main() {
 
     let mut cube1 = cube::Cube::new([-1.0, 5.0, 5.0], [0.9, 0.2, 0.2]);
     let mut chunk: [[[usize; 16]; 16]; 16] = [[[0; 16]; 16]; 16];
-    for x in 0..16 {
-        for y in 0..16 {
-            for z in 0..16 {
-                if y == 0 {
-                   chunk[x][y][z] = 1;
-                } else {
-                    chunk[x][y][z] = 0;
+    chunk[0][0][0] = 1;
+    for x in 1..16 {
+        for y in 1..16 {
+            for z in 1..16 {
+                if (y as f32) < ((x*x + z*z) as f32).sqrt() {
+                    if y < 5 {
+                        chunk[x][y][z] = 1;
+                    } else if y < 8 {
+                        chunk[x][y][z] = 3;
+                    } else if y < 9 {
+                        chunk[x][y][z] = 2;
+                    } else {
+                        chunk[x][y][z] = 0;
+                    }
                 }
             }
         }
@@ -65,7 +72,7 @@ fn main() {
     let mut mesh = mesh::Mesh::new(mesh_vertices, &mesh_texture, &shader);
 
     //let mut camera = Camera::new(Vector3::new(-8.0, 11.0, -9.0), Vector3::new(0.568056107, -0.487900823, 0.662770748));
-    let mut player = player::Player::new(Vector3::new(8.0, 14.0, 8.0), Vector3::new(0.568056107, -0.487900823, 0.662770748));
+    let mut player = player::Player::new(Vector3::new(0.5, 11.0, 0.5), Vector3::new(1.0, 0.0, 0.0));
     //camera.set_move_speed(0.5);
 
     unsafe {
@@ -112,11 +119,11 @@ fn main() {
                     match button {
                         glfw::MouseButton::Button1 => {
                             if action == glfw::Action::Press {
-                                if let Some(index) = player.dda(&chunk) {
-                                    chunk[index.x as usize][index.y as usize][index.z as usize] = 0;
+                                if let Some((chunk_index, block_index)) = player.dda(&chunk) {
+                                    chunk[block_index.x as usize][block_index.y as usize][block_index.z as usize] = 0;
                                     mesh_vertices = meshgen::gen_chunk_mesh(&chunk);
                                     mesh = mesh::Mesh::new(mesh_vertices, &mesh_texture, &shader);
-                                    println!("block hit: {:?}", index);
+                                    //println!("block hit: {:?}", block_index);
                                 }
                             }
                         },
@@ -125,11 +132,11 @@ fn main() {
                 },
                 glfw::WindowEvent::Key(key  , _code, action, _modifiers) => match key {
                     glfw::Key::Escape => window.set_should_close(true),
-                    glfw::Key::W =>  { if action == glfw::Action::Press || action == glfw::Action::Repeat { player.move_direction(Vector3::new(0.0, 0.0, 1.0)) } else if action == glfw::Action::Release { player.stop_move_direction(Vector3::new(1.0, 1.0, 0.0)) } },
-                    glfw::Key::S =>  { if action == glfw::Action::Press || action == glfw::Action::Repeat { player.move_direction(Vector3::new(0.0, 0.0, -1.0)) } else if action == glfw::Action::Release { player.stop_move_direction(Vector3::new(1.0, 1.0, 0.0)) } },
-                    glfw::Key::D =>  { if action == glfw::Action::Press || action == glfw::Action::Repeat { player.move_direction(Vector3::new(1.0, 0.0, 0.0)) } else if action == glfw::Action::Release { player.stop_move_direction(Vector3::new(0.0, 1.0, 1.0)) } },
-                    glfw::Key::A =>  { if action == glfw::Action::Press || action == glfw::Action::Repeat { player.move_direction(Vector3::new(-1.0, 0.0, 0.0)) } else if action == glfw::Action::Release { player.stop_move_direction(Vector3::new(0.0, 1.0, 1.0)) } },
-                    glfw::Key::Space =>  { if action == glfw::Action::Press { player.move_direction(Vector3::new(0.0, 1.0, 0.0)) } },
+                    glfw::Key::W =>  { if action == glfw::Action::Press { player.move_direction(Vector3::new(0.0, 0.0, 1.0)) } else if action == glfw::Action::Release { player.stop_move_direction(Vector3::new(0.0, 0.0, 1.0)) } },
+                    glfw::Key::S =>  { if action == glfw::Action::Press { player.move_direction(Vector3::new(0.0, 0.0, -1.0)) } else if action == glfw::Action::Release { player.stop_move_direction(Vector3::new(0.0,0.0, -1.0)) } },
+                    glfw::Key::D =>  { if action == glfw::Action::Press { player.move_direction(Vector3::new(1.0, 0.0, 0.0)) } else if action == glfw::Action::Release { player.stop_move_direction(Vector3::new(1.0, 0.0, 0.0)) } },
+                    glfw::Key::A =>  { if action == glfw::Action::Press { player.move_direction(Vector3::new(-1.0, 0.0, 0.0)) } else if action == glfw::Action::Release { player.stop_move_direction(Vector3::new(-1.0, 0.0, 0.0)) } },
+                    glfw::Key::Space =>  { if action == glfw::Action::Press { player.move_direction(Vector3::new(0.0, 3.0, 0.0)) } },
                     glfw::Key::LeftShift =>  { if action == glfw::Action::Press { player.move_direction(Vector3::new(0.0, -1.0, 0.0)) } else if action == glfw::Action::Release { player.stop_move_direction(Vector3::new(1.0, 0.0, 1.0)) } },
                     _ => {}
                 },

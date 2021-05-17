@@ -13,15 +13,13 @@ enum Vec3Direction {
     Z
 }
 
-
 pub(crate) struct Player {
     pub camera: Camera,
     pub position: Vector3<f32>,
     move_speed: f32,
-    velocity: Vector3<f32>,
+    direction: Vector3<f32>,
     grounded: bool,
 }
-
 
 impl Player {
     pub fn new(position: Vector3<f32>, forward: Vector3<f32>) -> Self {
@@ -29,22 +27,22 @@ impl Player {
             camera: Camera::new(position, forward),
             position,
             move_speed: 0.1,
-            velocity: Vector3::new(0.0, 0.0, 0.0),
+            direction: Vector3::new(0.0f32, 0.0f32, 0f32),
             grounded: false,
         }
     }
 
     pub fn collisions(&mut self, chunk: &[[[usize; 16]; 16]; 16]) {
         let cur_block = Vector3::new(
-            self.position.x.round() as isize,
-            (self.position.y-1.5).round() as isize,
-            self.position.z.round() as isize,
+            self.position.x as isize,
+            (self.position.y-1.8) as isize,
+            self.position.z as isize,
         );
         if  cur_block.x >= 0 && cur_block.x < 15 &&
             cur_block.y >= 0 && cur_block.x < 15 && 
             cur_block.y >= 0 && cur_block.x < 15 {
             if chunk[cur_block.x as usize][(cur_block.y) as usize][cur_block.z as usize] != 0 {
-                self.velocity.y = 0.0;
+                self.direction.y = 0.0;
                 self.grounded = true;
             } else {
                 self.grounded = false;
@@ -53,25 +51,29 @@ impl Player {
     }
 
     pub fn kinematics(&mut self) {
-        if self.grounded {
-            self.velocity.y  = 0.0;
-        } else {
-            self.velocity += GRAVITY;
+        if !self.grounded {
+            self.direction.y -= 0.10;
         }
-        self.position += self.move_speed * self.velocity;
+
+        self.position.y += self.move_speed * 0.5 * self.direction.y as f32;
+
+        self.position.x += self.move_speed * self.camera.right.x * self.direction.x as f32;
+        self.position.z += self.move_speed * self.camera.right.z * self.direction.x as f32;
+        self.position.x += self.move_speed * self.camera.forward.x * self.direction.z as f32;
+        self.position.z += self.move_speed * self.camera.forward.z * self.direction.z as f32;
 
         self.camera.translate(self.position);
     }
 
     pub fn dda
-    (&self, chunk: &[[[usize; 16]; 16]; 16]) -> Option<Vector3<f32>> {
-        let mut ray_start = Vector3 {
+    (&self, chunk: &[[[usize; 16]; 16]; 16], look: &Vector3<f32>) -> Option<(Vector3<usize>, Vector3<usize>)> {
+        let ray_start = Vector3 {
             x: self.position.x,
             y: self.position.y,
             z: self.position.z,
         };
 
-        let ray_dir = normalize(&self.camera.forward);
+        let ray_dir = normalize(look);
 
         let ray_unit_step_size = Vector3 {
             x: (1.0 + (ray_dir.y/ray_dir.x)*(ray_dir.y/ray_dir.x) + (ray_dir.z/ray_dir.x)*(ray_dir.z/ray_dir.x)).sqrt(),
@@ -79,9 +81,9 @@ impl Player {
             z: ((ray_dir.x/ray_dir.z)*(ray_dir.x/ray_dir.z) + (ray_dir.y/ray_dir.z)*(ray_dir.y/ray_dir.z) + 1.0).sqrt(),
         };
         let mut map_check = Vector3 {
-            x: ray_start.x.round() as i32,
-            y: ray_start.y.round() as i32,
-            z: ray_start.z.round() as i32
+            x: ray_start.x as i32,
+            y: ray_start.y as i32,
+            z: ray_start.z as i32
         };
         let mut ray_length_1d = Vector3 {x: 0.0, y: 0.0, z: 0.0 };
         let mut step = Vector3 {x: 0, y: 0, z: 0};
@@ -120,6 +122,7 @@ impl Player {
             if ray_length_1d.y < min_dist { min_dist = ray_length_1d.y; min_dir = Vec3Direction::Y }
             if ray_length_1d.z < min_dist { min_dist = ray_length_1d.z; min_dir = Vec3Direction::Z }
 
+
             if min_dir == Vec3Direction::X {
                 map_check.x += step.x;
                 dist = ray_length_1d.x;
@@ -133,57 +136,25 @@ impl Player {
                 dist = ray_length_1d.z;
                 ray_length_1d.z += ray_unit_step_size.z;
             }
-            if chunk[map_check.x as usize][map_check.y as usize][map_check.z as usize] != 0 {
+            if chunk[map_check.x as usize % 16][map_check.y as usize % 16][map_check.z as usize % 16] != 0 {
                 println!("Checked ({}, {}, {}). Hit!", map_check.x, map_check.y, map_check.z);
                 tile_found = true;
-                return Some(ray_start + ray_dir * dist);
+                return Some((Vector3 { x: 0, y: 0, z: 0 }, Vector3 { x: map_check.x as usize % 16, y: map_check.y as usize % 16, z: map_check.z as usize % 16}));
             }
         }
         None
-        /*let hit_radius = 40;
-        let mut steps = 0;
-        while steps < hit_radius {
-            for x in 0..16 {
-                for y in 0..16 {
-                    for z in 0..16 {
-                        if ray.x > (x as f32)-0.5 && ray.x < (x as f32)+0.5
-                        && ray.y > (y as f32)-0.5 && ray.y < (y as f32)+0.5
-                        && ray.z > (z as f32)-0.5 && ray.z < (z as f32)+0.5 {
-                            println!("Chunk intersection with block at ({}, {}, {}): {}", x, y, z, chunk[x][y][z]);
-                            if chunk[x][y][z] != 0 {
-                                return Some(Vector3 {x, y, z});
-                            }
-                        }
-                    }
-                }
-            }
-            ray += 0.1 * self.camera.forward;
-            steps += 1;
-        }*/
     }
     
 
     pub fn move_direction(&mut self, direction: Vector3<f32>) {
-        self.velocity.x += self.camera.right.x * direction.x;
-        self.velocity.y += self.camera.right.y * direction.x;
-        self.velocity.z += self.camera.right.z * direction.x;
-
-        if direction.y > 0.0 {
-            self.velocity.y += self.camera.up.y * direction.y;
-            self.grounded = false;
+        self.direction.x += direction.x;
+        self.direction.z += direction.z;
+        if self.grounded {
+            self.direction.y += direction.y;
         }
-
-        self.velocity.x += self.camera.forward.x * direction.z;
-        self.velocity.y += self.camera.forward.y * direction.z;
-        self.velocity.z += self.camera.forward.z * direction.z;
-
-        normalize_inplace(self.velocity);
-
     }
 
     pub fn stop_move_direction(&mut self, direction: Vector3<f32>) {
-        self.velocity.x = 0.0;
-        self.velocity.y = 0.0;
-        self.velocity.z = 0.0;
+        self.direction -= direction;
     }
 }

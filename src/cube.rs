@@ -57,7 +57,7 @@ pub struct Cube {
     //texture: Option<glium::Texture2d>,
 
     pub model_matrix: [[f32; 4]; 4],
-    //vertices: VertexBuffer<Vertex>,
+    //vertices: Vec<Vertex>,
 }
 
 impl Cube {

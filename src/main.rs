@@ -119,7 +119,7 @@ fn main() {
                     match button {
                         glfw::MouseButton::Button1 => {
                             if action == glfw::Action::Press {
-                                if let Some((chunk_index, block_index)) = player.dda(&chunk) {
+                                if let Some((chunk_index, block_index)) = player.dda(&chunk, &player.camera.forward) {
                                     chunk[block_index.x as usize][block_index.y as usize][block_index.z as usize] = 0;
                                     mesh_vertices = meshgen::gen_chunk_mesh(&chunk);
                                     mesh = mesh::Mesh::new(mesh_vertices, &mesh_texture, &shader);

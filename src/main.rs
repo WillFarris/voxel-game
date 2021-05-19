@@ -15,6 +15,7 @@ use cgmath::{Matrix4, Vector3};
 use glfw::Context;
 use mesh::{Texture, texture_from_file};
 use meshgen::gen_chunk_mesh;
+use vectormath::dda;
 use std::ffi::CStr;
 
 extern crate image;
@@ -46,25 +47,30 @@ fn main() {
 
 
     let mut cube1 = cube::Cube::new([-1.0, 5.0, 5.0], [0.9, 0.2, 0.2]);
-    let mut chunk: [[[usize; 16]; 16]; 16] = [[[0; 16]; 16]; 16];
-    chunk[0][0][0] = 1;
-    for x in 1..16 {
-        for y in 1..16 {
-            for z in 1..16 {
-                if (y as f32) < ((x*x + z*z) as f32).sqrt() {
-                    if y < 5 {
-                        chunk[x][y][z] = 1;
-                    } else if y < 8 {
-                        chunk[x][y][z] = 3;
-                    } else if y < 9 {
-                        chunk[x][y][z] = 2;
-                    } else {
-                        chunk[x][y][z] = 0;
+    
+    //let chunks = Vec::with_capacity(5);
+    //for i in 0..5 {
+        let mut chunk: [[[usize; 16]; 16]; 16] = [[[0; 16]; 16]; 16];
+        chunk[0][0][0] = 1;
+        for x in 1..16 {
+            for y in 1..16 {
+                for z in 1..16 {
+                    if (y as f32) < ((x*x + z*z) as f32).sqrt() {
+                        if y < 5 {
+                            chunk[x][y][z] = 1;
+                        } else if y < 8 {
+                            chunk[x][y][z] = 3;
+                        } else if y < 9 {
+                            chunk[x][y][z] = 2;
+                        } else {
+                            chunk[x][y][z] = 0;
+                        }
                     }
                 }
             }
         }
-    }
+        //chunks.push(chunk);
+    //}
 
     let texture_id = texture_from_file("terrain.png", ".");
     let mesh_texture = Texture {id: texture_id};
@@ -79,10 +85,21 @@ fn main() {
         gl::Enable(gl::DEPTH_TEST);
     }
     
+    let mut previous_time = glfw.get_time();
+    let mut frame_count = 0;
     while !window.should_close() {
+        let current_time = glfw.get_time();
+        frame_count += 1;
+        if current_time - previous_time >= 1.0 {
+            // Display the frame count here any way you want.
+            println!("FPS: {}", frame_count);
 
-        player.kinematics();
-        player.collisions(&chunk);
+            frame_count = 0;
+            previous_time = current_time;
+        }
+        std::thread::sleep(std::time::Duration::from_nanos(11111111));
+
+        player.update(&chunk);
         
 
         unsafe {
@@ -90,7 +107,6 @@ fn main() {
             gl::ClearColor(0.1, 0.4, 0.95, 1.0);
             gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
 
-            
             shader.use_program();
 
             let projection: Matrix4<f32> = perspective_matrix();//cgmath::perspective(cgmath::Deg(90.0), WIDTH as f32 / HEIGHT as f32, 0.1, 100.0);
@@ -103,7 +119,6 @@ fn main() {
             mesh.draw();
 
         }
-        
         
         window.swap_buffers();
         glfw.poll_events();
@@ -119,7 +134,7 @@ fn main() {
                     match button {
                         glfw::MouseButton::Button1 => {
                             if action == glfw::Action::Press {
-                                if let Some((chunk_index, block_index)) = player.dda(&chunk, &player.camera.forward) {
+                                if let Some((chunk_index, block_index)) = dda(&chunk, &player.position, &player.camera.forward) {
                                     chunk[block_index.x as usize][block_index.y as usize][block_index.z as usize] = 0;
                                     mesh_vertices = meshgen::gen_chunk_mesh(&chunk);
                                     mesh = mesh::Mesh::new(mesh_vertices, &mesh_texture, &shader);

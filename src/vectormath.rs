@@ -81,7 +81,9 @@ pub fn _quaternion_rotation_matrix(axis: &Vector3<f32>, angle: f32) -> Matrix3<f
 
 
 pub fn len(vec: &Vector3<f32>) -> f32 {
-    (vec.x * vec.x + vec.y * vec.y + vec.z * vec.z).sqrt()
+    let len = (vec.x * vec.x + vec.y * vec.y + vec.z * vec.z).sqrt();
+    if len.is_nan() { return 0.0; }
+    len
 }
 
 pub fn normalize(vec: &Vector3<f32>) -> Vector3<f32> {
@@ -106,14 +108,25 @@ pub fn dot(u: &Vector3<f32>, v: &Vector3<f32>) -> f32 {
     u.x * v.x + u.y * v.y + u.z * v.z
 }
 
-pub fn dda(chunk: &[[[usize; 16]; 16]; 16], start: &Vector3<f32>, dir: &Vector3<f32>) -> Option<(Vector3<f32>, Vector3<usize>)> {
+pub fn dda(chunk: &[[[usize; 16]; 16]; 16], start: &Vector3<f32>, dir: &Vector3<f32>, max_dist: f32) -> Option<(Vector3<f32>, Vector3<usize>)> {
     let ray_dir = normalize(dir);
 
-    let ray_unit_step_size = Vector3 {
+    let mut ray_unit_step_size = Vector3 {
         x: (1.0 + (ray_dir.y/ray_dir.x)*(ray_dir.y/ray_dir.x) + (ray_dir.z/ray_dir.x)*(ray_dir.z/ray_dir.x)).sqrt(),
         y: ((ray_dir.x/ray_dir.y)*(ray_dir.x/ray_dir.y) + 1.0 + (ray_dir.z/ray_dir.y)*(ray_dir.z/ray_dir.y)).sqrt(),
         z: ((ray_dir.x/ray_dir.z)*(ray_dir.x/ray_dir.z) + (ray_dir.y/ray_dir.z)*(ray_dir.y/ray_dir.z) + 1.0).sqrt(),
     };
+
+    if ray_unit_step_size.x.is_nan() {
+        ray_unit_step_size.x = 1.0;
+    }
+    if ray_unit_step_size.y.is_nan() {
+        ray_unit_step_size.y = 1.0;
+    }
+    if ray_unit_step_size.z.is_nan() {
+        ray_unit_step_size.z = 1.0;
+    }
+
     let mut map_check = Vector3 {
         x: start.x as i32,
         y: start.y as i32,
@@ -146,7 +159,6 @@ pub fn dda(chunk: &[[[usize; 16]; 16]; 16], start: &Vector3<f32>, dir: &Vector3<
         ray_length_1d.z = ((map_check.z as f32 + 1.0) - start.z) * ray_unit_step_size.z;
     }
 
-    let max_dist = 4.0f32;
     let mut dist = 0.0;
     while dist < max_dist {
 
@@ -169,7 +181,9 @@ pub fn dda(chunk: &[[[usize; 16]; 16]; 16], start: &Vector3<f32>, dir: &Vector3<
             ray_length_1d.z += ray_unit_step_size.z;
         }
         if chunk[map_check.x as usize % 16][map_check.y as usize % 16][map_check.z as usize % 16] != 0 {
-            return Some((start + ray_dir * dist, Vector3 { x: map_check.x as usize % 16, y: map_check.y as usize % 16, z: map_check.z as usize % 16}));
+            return Some(
+                (start + ray_dir * dist, Vector3 { x: map_check.x as usize % 16, y: map_check.y as usize % 16, z: map_check.z as usize % 16})
+            );
         }
     }
     None

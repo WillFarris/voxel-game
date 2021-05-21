@@ -16,7 +16,7 @@ use glfw::Context;
 use mesh::{Texture, texture_from_file};
 use meshgen::gen_chunk_mesh;
 use vectormath::dda;
-use std::ffi::CStr;
+use std::{ffi::CStr, vec};
 
 extern crate image;
 extern crate glfw;
@@ -24,8 +24,8 @@ extern crate gl;
 
 const _SCENE_LIGHT: [f32; 3] = [-1.0, 0.701, -1.0];
 
-const WIDTH: u32 = 1280;
-const HEIGHT: u32 = 1024;
+const WIDTH: u32 = 960;
+const HEIGHT: u32 = 720;
 
 fn main() {
 
@@ -46,7 +46,9 @@ fn main() {
     let shader = shader::Shader::new("shaders/cube_vertex.glsl", "shaders/cube_fragment.glsl");
 
 
-    let mut cube1 = cube::Cube::new([-1.0, 5.0, 5.0], [0.9, 0.2, 0.2]);
+    //let mut cube1 = cube::Cube::new([-1.0, 5.0, 5.0], [0.9, 0.2, 0.2]);
+
+    
     
     //let chunks = Vec::with_capacity(5);
     //for i in 0..5 {
@@ -77,13 +79,20 @@ fn main() {
     let mut mesh_vertices = gen_chunk_mesh(&chunk);
     let mut mesh = mesh::Mesh::new(mesh_vertices, &mesh_texture, &shader);
 
+    let mut cursor_cube = [[[0usize; 16]; 16]; 16];
+    cursor_cube[0][0][0] = 1;
+    let cursor_cube_verts = gen_chunk_mesh(&cursor_cube);
+    let cursor_cube_mesh = mesh::Mesh::new(cursor_cube_verts, &mesh_texture, &shader);
+    let mut cursor_position = Vector3 { x: 0.0, y: 0.0, z: 0.0};
+
     //let mut camera = Camera::new(Vector3::new(-8.0, 11.0, -9.0), Vector3::new(0.568056107, -0.487900823, 0.662770748));
-    let mut player = player::Player::new(Vector3::new(0.5, 11.0, 0.5), Vector3::new(1.0, 0.0, 0.0));
+    let mut player = player::Player::new(Vector3::new(2.5, 8.8, 2.5), Vector3::new(1.0, 0.0, 0.0));
     //camera.set_move_speed(0.5);
 
     unsafe {
         gl::Enable(gl::DEPTH_TEST);
     }
+
     
     let mut previous_time = glfw.get_time();
     let mut frame_count = 0;
@@ -100,7 +109,10 @@ fn main() {
         std::thread::sleep(std::time::Duration::from_nanos(11111111));
 
         player.update(&chunk);
-        
+        /*if let Some((intersect, block, )) = dda(&chunk, &player.delta, &player.direction, vectormath::len(&player.delta)) {
+            cursor_position = intersect;
+        }*/
+        //cursor_position = player.position + player.delta;
 
         unsafe {
             
@@ -118,6 +130,13 @@ fn main() {
             shader.set_mat4(c_str!("model_matrix"), &model);
             mesh.draw();
 
+            //let cursor_projection: Matrix4<f32> = perspective_matrix();//cgmath::perspective(cgmath::Deg(90.0), WIDTH as f32 / HEIGHT as f32, 0.1, 100.0);
+            //let view = player.camera.view_matrix();
+            let cursor_model = Matrix4::from_translation(cursor_position);
+            shader.set_mat4(c_str!("model_matrix"), &cursor_model);
+
+            cursor_cube_mesh.draw();
+
         }
         
         window.swap_buffers();
@@ -134,8 +153,18 @@ fn main() {
                     match button {
                         glfw::MouseButton::Button1 => {
                             if action == glfw::Action::Press {
-                                if let Some((chunk_index, block_index)) = dda(&chunk, &player.position, &player.camera.forward) {
+                                if let Some((chunk_index, block_index)) = dda(&chunk, &player.position, &player.camera.forward, 6.0) {
                                     chunk[block_index.x as usize][block_index.y as usize][block_index.z as usize] = 0;
+                                    mesh_vertices = meshgen::gen_chunk_mesh(&chunk);
+                                    mesh = mesh::Mesh::new(mesh_vertices, &mesh_texture, &shader);
+                                    //println!("block hit: {:?}", block_index);
+                                }
+                            }
+                        },
+                        glfw::MouseButton::Button2 => {
+                            if action == glfw::Action::Press {
+                                if let Some((adjacent, block_index)) = dda(&chunk, &player.position, &player.camera.forward, 6.0) {
+                                    chunk[adjacent.x as usize][adjacent.y as usize][adjacent.z as usize] = 3;
                                     mesh_vertices = meshgen::gen_chunk_mesh(&chunk);
                                     mesh = mesh::Mesh::new(mesh_vertices, &mesh_texture, &shader);
                                     //println!("block hit: {:?}", block_index);

@@ -180,7 +180,9 @@ pub fn dda(chunk: &[[[usize; 16]; 16]; 16], start: &Vector3<f32>, dir: &Vector3<
             dist = ray_length_1d.z;
             ray_length_1d.z += ray_unit_step_size.z;
         }
-        if chunk[map_check.x as usize % 16][map_check.y as usize % 16][map_check.z as usize % 16] != 0 {
+        if map_check.x > 15 || map_check.y > 15 || map_check.z > 15 {
+            return None;
+        } else if chunk[map_check.x as usize][map_check.y as usize][map_check.z as usize] != 0 {
             return Some(
                 (start + ray_dir * dist, Vector3 { x: map_check.x as usize % 16, y: map_check.y as usize % 16, z: map_check.z as usize % 16})
             );

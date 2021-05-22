@@ -58,11 +58,11 @@ fn main() {
             for y in 1..16 {
                 for z in 1..16 {
                     if (y as f32) < ((x*x + z*z) as f32).sqrt() {
-                        if y < 5 {
+                        if y < 3 {
                             chunk[x][y][z] = 1;
-                        } else if y < 8 {
+                        } else if y < 4 {
                             chunk[x][y][z] = 3;
-                        } else if y < 9 {
+                        } else if y < 5 {
                             chunk[x][y][z] = 2;
                         } else {
                             chunk[x][y][z] = 0;
@@ -83,10 +83,10 @@ fn main() {
     cursor_cube[0][0][0] = 1;
     let cursor_cube_verts = gen_chunk_mesh(&cursor_cube);
     let cursor_cube_mesh = mesh::Mesh::new(cursor_cube_verts, &mesh_texture, &shader);
-    let mut cursor_position = Vector3 { x: 0.0, y: 0.0, z: 0.0};
+    let mut cursor_position: Vector3<f32> = Vector3::new(0.0, 0.0, 0.0);
 
     //let mut camera = Camera::new(Vector3::new(-8.0, 11.0, -9.0), Vector3::new(0.568056107, -0.487900823, 0.662770748));
-    let mut player = player::Player::new(Vector3::new(2.5, 8.8, 2.5), Vector3::new(1.0, 0.0, 0.0));
+    let mut player = player::Player::new(Vector3::new(5.0, 5.8, 4.5), Vector3::new(1.0, 0.0, 0.0));
     //camera.set_move_speed(0.5);
 
     unsafe {
@@ -153,7 +153,7 @@ fn main() {
                     match button {
                         glfw::MouseButton::Button1 => {
                             if action == glfw::Action::Press {
-                                if let Some((chunk_index, block_index)) = dda(&chunk, &player.position, &player.camera.forward, 6.0) {
+                                if let Some((chunk_index, block_index)) = dda(&chunk, &player.camera.position, &player.camera.forward, 6.0) {
                                     chunk[block_index.x as usize][block_index.y as usize][block_index.z as usize] = 0;
                                     mesh_vertices = meshgen::gen_chunk_mesh(&chunk);
                                     mesh = mesh::Mesh::new(mesh_vertices, &mesh_texture, &shader);
@@ -163,7 +163,7 @@ fn main() {
                         },
                         glfw::MouseButton::Button2 => {
                             if action == glfw::Action::Press {
-                                if let Some((adjacent, block_index)) = dda(&chunk, &player.position, &player.camera.forward, 6.0) {
+                                if let Some((adjacent, block_index)) = dda(&chunk, &player.camera.position, &player.camera.forward, 6.0) {
                                     chunk[adjacent.x as usize][adjacent.y as usize][adjacent.z as usize] = 3;
                                     mesh_vertices = meshgen::gen_chunk_mesh(&chunk);
                                     mesh = mesh::Mesh::new(mesh_vertices, &mesh_texture, &shader);
@@ -180,8 +180,8 @@ fn main() {
                     glfw::Key::S =>  { if action == glfw::Action::Press { player.move_direction(Vector3::new(0.0, 0.0, -1.0)) } else if action == glfw::Action::Release { player.stop_move_direction(Vector3::new(0.0,0.0, -1.0)) } },
                     glfw::Key::D =>  { if action == glfw::Action::Press { player.move_direction(Vector3::new(1.0, 0.0, 0.0)) } else if action == glfw::Action::Release { player.stop_move_direction(Vector3::new(1.0, 0.0, 0.0)) } },
                     glfw::Key::A =>  { if action == glfw::Action::Press { player.move_direction(Vector3::new(-1.0, 0.0, 0.0)) } else if action == glfw::Action::Release { player.stop_move_direction(Vector3::new(-1.0, 0.0, 0.0)) } },
-                    glfw::Key::Space =>  { if action == glfw::Action::Press { player.move_direction(Vector3::new(0.0, 3.0, 0.0)) } },
-                    glfw::Key::LeftShift =>  { if action == glfw::Action::Press { player.move_direction(Vector3::new(0.0, -1.0, 0.0)) } else if action == glfw::Action::Release { player.stop_move_direction(Vector3::new(1.0, 0.0, 1.0)) } },
+                    glfw::Key::Space =>  { if action == glfw::Action::Press { player.move_direction(Vector3::new(0.0, 2.0, 0.0)) } },
+                    //glfw::Key::LeftShift =>  { if action == glfw::Action::Press { player.move_direction(Vector3::new(0.0, -1.0, 0.0)) } else if action == glfw::Action::Release { player.stop_move_direction(Vector3::new(0.0, -1.0, 0.0)) } },
                     _ => {}
                 },
                 _ => {}

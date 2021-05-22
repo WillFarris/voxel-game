@@ -79,47 +79,13 @@ impl Player {
         }
 
         if chunk[self.position.x as usize%16][(self.position.y-0.1) as usize%16][self.position.z as usize%16] != 0 {
-            //println!("Standing on a block");
             self.grounded = true;
-            //self.direction.y = 0.0;
         } else {
             self.grounded = false;
             delta += GRAVITY;
         }
-
-        let delta_mag = vectormath::len(&delta);
-        //if delta_mag > 0.0 {println!("Delta: {:?} length {}", delta, delta_mag);}
-        
-        /*if let Some((intersect, block)) = dda(&chunk, &self.position, &delta, delta_mag) {
-            let mut intersect_direction = intersect - self.position;
-            let intersect_dist = len(&intersect_direction);
-
-            
-
-            if block.y < self.position.y as usize {
-                self.direction.y = 0.0;
-                self.grounded = true;
-            }
-            if block.x == self.position.x as usize {
-                intersect_direction.z = 0.0;
-            }
-            if block.z == self.position.z as usize {
-                intersect_direction.x = 0.0;
-            }
-            //let mut normalized_delta = normalize(&delta);
-
-            if intersect_dist > delta_mag {
-                self.position += delta;
-            } else {
-                self.position.x += 0.9 * intersect_direction.x;// - (0.02 * normalized_delta.x);
-                self.position.z += 0.9 * intersect_direction.z;// - (0.02 * normalized_delta.z);
-            }
-        } else {
-            self.position += delta;
-        }*/
-        //if !collision {self.position += delta;}
         self.position += delta;
-        self.camera.translate(self.position + 2.0 * Y_VECTOR);
+        self.camera.translate(self.position + 1.6 * Y_VECTOR);
     }
 
     pub fn move_direction(&mut self, direction: Vector3<f32>) {

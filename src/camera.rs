@@ -45,7 +45,7 @@ impl Camera {
     }
 
 
-    pub fn move_direction(&mut self, direction: Vector3<f32>) {
+    pub fn _move_direction(&mut self, direction: Vector3<f32>) {
         self.position.x += self.right.x * direction.x;
         self.position.y += self.right.y * direction.x;
         self.position.z += self.right.z * direction.x;

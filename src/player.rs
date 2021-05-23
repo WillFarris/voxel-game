@@ -1,8 +1,7 @@
-use cgmath::{Matrix3, Vector3, Vector4, dot, num_traits::abs};
+use cgmath::Vector3;
 
-use crate::{block::BLOCKS, camera::Camera, player, vectormath::{self, X_VECTOR, Y_VECTOR, Z_VECTOR, dda, normalize, len, normalize_inplace}, world::World};
+use crate::{camera::Camera, vectormath::{Y_VECTOR, dda, len, normalize_inplace}, world::World};
 
-use std::cmp::max;
 
 const GRAVITY: Vector3<f32> = Vector3 {x: 0.0, y: -0.04, z: 0.0};
 
@@ -43,7 +42,6 @@ impl Player {
         collision_box.push((0.25 * right) - (0.25 * forward) + delta);
         collision_box.push((-0.25 * right) - (0.25 * forward) + delta);
 
-        let mut collision = false;
         for vert in collision_box {
             let collision_check_feet = Vector3::new(
                 (self.position.x + delta.x + vert.x) as isize,
@@ -59,7 +57,7 @@ impl Player {
             
             if world.collision_at_world_pos(collision_check_feet) ||
                world.collision_at_world_pos(collision_check_head) {
-                if let Some((global_intersect_coords, global_block_index)) = dda(&world, &(self.position + delta), &vert, len(&(vert))) {
+                if let Some((_global_intersect_coords, global_block_index)) = dda(&world, &(self.position + delta), &vert, len(&(vert))) {
 
                     if (self.position.x + delta.x) as isize == global_block_index.x {
                         delta.z = 0.0;
@@ -67,16 +65,14 @@ impl Player {
                     if (self.position.z + delta.z) as isize == global_block_index.z {
                         delta.x = 0.0;
                     }
-                    collision = true;
                 }
-                if let Some((global_intersect_coords, global_block_index)) = dda(&world, &(self.position + delta + Y_VECTOR), &vert, len(&(vert))) {
+                if let Some((_global_intersect_coords, global_block_index)) = dda(&world, &(self.position + delta + Y_VECTOR), &vert, len(&(vert))) {
                     if (self.position.x + delta.x) as isize == global_block_index.x {
                         delta.z = 0.0;
                     }
                     if (self.position.z + delta.z) as isize == global_block_index.z {
                         delta.x = 0.0;
                     }
-                    collision = true;
                 }
             }
         }

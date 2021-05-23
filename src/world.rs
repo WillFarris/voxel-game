@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use cgmath::{Matrix4, Vector3};
 
-use crate::{block, mesh::{self, Texture, texture_from_file}, meshgen::{self, gen_chunk_mesh}, shader::Shader};
+use crate::{mesh::{self, Texture}, meshgen::{self, gen_chunk_mesh}, shader::Shader};
 
 use std::ffi::CStr;
 
@@ -19,8 +19,8 @@ pub struct Chunk<'a> {
 impl<'a> Chunk<'a> {
     pub fn from_blocks(blocks: [[[usize; CHUNK_SIZE]; CHUNK_SIZE]; CHUNK_SIZE], position: Vector3<isize>, shader: &'a Shader, texture_id: u32) -> Self {
         let texture = Texture {id: texture_id};
-        let mut mesh_vertices = gen_chunk_mesh(&blocks);
-        let mut mesh = mesh::Mesh::new(mesh_vertices, &texture, &shader);
+        let mesh_vertices = gen_chunk_mesh(&blocks);
+        let mesh = mesh::Mesh::new(mesh_vertices, &texture, &shader);
 
         Self {
             blocks,
@@ -31,7 +31,7 @@ impl<'a> Chunk<'a> {
         }
     }
 
-    pub unsafe fn render(&self, projection_matrix: &Matrix4<f32>, view_matrix: &Matrix4<f32>, shader: &Shader) {
+    pub unsafe fn render(&self, _projection_matrix: &Matrix4<f32>, _view_matrix: &Matrix4<f32>, shader: &Shader) {
         shader.set_mat4(c_str!("model_matrix"), &self.model_matrix);
         self.mesh.draw();
     }
@@ -74,7 +74,7 @@ impl<'a> World<'a> {
     }
 
     pub unsafe fn render(&self, projection_matrix: &Matrix4<f32>, view_matrix: &Matrix4<f32>) {
-        for (position, chunk) in &self.chunks {
+        for (_position, chunk) in &self.chunks {
             if let Some(c) = chunk {
                 c.render(projection_matrix, view_matrix, self.shader);
             }

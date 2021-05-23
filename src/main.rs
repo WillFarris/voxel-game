@@ -10,14 +10,12 @@ mod macros;
 mod player;
 mod world;
 
-use block::{BLOCKS, Block};
 use camera::*;
 use cgmath::{Matrix4, Vector3};
 use glfw::Context;
-use mesh::{Texture, texture_from_file};
-use meshgen::gen_chunk_mesh;
+use mesh::texture_from_file;
 use vectormath::dda;
-use std::{ffi::CStr, vec};
+use std::ffi::CStr;
 
 extern crate image;
 extern crate glfw;
@@ -25,8 +23,8 @@ extern crate gl;
 
 const _SCENE_LIGHT: [f32; 3] = [-1.0, 0.701, -1.0];
 
-const WIDTH: u32 = 960;
-const HEIGHT: u32 = 720;
+const WIDTH: u32 = 800;
+const HEIGHT: u32 = 600;
 
 fn main() {
 

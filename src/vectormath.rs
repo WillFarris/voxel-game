@@ -1,5 +1,7 @@
 use cgmath::{Matrix3, Vector3, Vector4};
 
+use crate::world;
+
 pub const X_VECTOR: Vector3<f32> = Vector3::new(1.0, 0.0, 0.0);
 pub const Y_VECTOR: Vector3<f32> = Vector3::new(0.0, 1.0, 0.0);
 pub const Z_VECTOR: Vector3<f32> = Vector3::new(0.0, 0.0, 1.0);
@@ -108,7 +110,7 @@ pub fn dot(u: &Vector3<f32>, v: &Vector3<f32>) -> f32 {
     u.x * v.x + u.y * v.y + u.z * v.z
 }
 
-pub fn dda(chunk: &[[[usize; 16]; 16]; 16], start: &Vector3<f32>, dir: &Vector3<f32>, max_dist: f32) -> Option<(Vector3<f32>, Vector3<usize>)> {
+pub fn dda(world: &world::World, start: &Vector3<f32>, dir: &Vector3<f32>, max_dist: f32) -> Option<(Vector3<f32>, Vector3<isize>)> {
     let ray_dir = normalize(dir);
 
     let mut ray_unit_step_size = Vector3 {
@@ -128,9 +130,9 @@ pub fn dda(chunk: &[[[usize; 16]; 16]; 16], start: &Vector3<f32>, dir: &Vector3<
     }
 
     let mut map_check = Vector3 {
-        x: start.x as i32,
-        y: start.y as i32,
-        z: start.z as i32
+        x: start.x as isize,
+        y: start.y as isize,
+        z: start.z as isize,
     };
     let mut ray_length_1d = Vector3 {x: 0.0, y: 0.0, z: 0.0 };
     let mut step = Vector3 {x: 0, y: 0, z: 0};
@@ -180,11 +182,9 @@ pub fn dda(chunk: &[[[usize; 16]; 16]; 16], start: &Vector3<f32>, dir: &Vector3<
             dist = ray_length_1d.z;
             ray_length_1d.z += ray_unit_step_size.z;
         }
-        if map_check.x > 15 || map_check.y > 15 || map_check.z > 15 {
-            return None;
-        } else if chunk[map_check.x as usize][map_check.y as usize][map_check.z as usize] != 0 {
+        if world.collision_at_world_pos(map_check) {
             return Some(
-                (start + ray_dir * dist, Vector3 { x: map_check.x as usize % 16, y: map_check.y as usize % 16, z: map_check.z as usize % 16})
+                (start + ray_dir * dist, Vector3 { x: map_check.x, y: map_check.y, z: map_check.z})
             );
         }
     }

@@ -1,6 +1,6 @@
 use cgmath::{Matrix3, Vector3, Vector4, dot, num_traits::abs};
 
-use crate::{block::BLOCKS, camera::Camera, player, vectormath::{self, X_VECTOR, Y_VECTOR, Z_VECTOR, dda, normalize, len, normalize_inplace}};
+use crate::{block::BLOCKS, camera::Camera, player, vectormath::{self, X_VECTOR, Y_VECTOR, Z_VECTOR, dda, normalize, len, normalize_inplace}, world::World};
 
 use std::cmp::max;
 
@@ -25,7 +25,7 @@ impl Player {
         }
     }
 
-    pub fn update(&mut self, chunk: &[[[usize; 16]; 16]; 16]  ) {
+    pub fn update(&mut self, world: &World) {
 
         let forward = normalize_inplace(Vector3::new(self.camera.forward.x, 0.0, self.camera.forward.z));
         let right = self.camera.right;
@@ -45,45 +45,54 @@ impl Player {
 
         let mut collision = false;
         for vert in collision_box {
-            if chunk[(self.position.x + delta.x + vert.x) as usize][(self.position.y + delta.y + vert.y) as usize][(self.position.z + delta.z + vert.z) as usize] != 0 ||
-               chunk[(self.position.x + delta.x + vert.x) as usize][(self.position.y + delta.y + vert.y + 1.0) as usize][(self.position.z + delta.z + vert.z) as usize] != 0 {
-                if let Some((intersect, block)) = dda(&chunk, &(self.position + delta), &vert, len(&(vert))) {
-                    println!("Collision at {:?} {} from player feet", intersect, len(&(intersect - self.position)));
-                    //intersect - (vert + self.position);
-                    if (self.position.x + delta.x) as usize == block.x {
+            let collision_check_feet = Vector3::new(
+                (self.position.x + delta.x + vert.x) as isize,
+                (self.position.y + delta.y + vert.y) as isize,
+                (self.position.z + delta.z + vert.z) as isize,
+            );
+
+            let collision_check_head = Vector3::new(
+                (self.position.x + delta.x + vert.x) as isize,
+                (self.position.y + delta.y + vert.y + 1.8) as isize,
+                (self.position.z + delta.z + vert.z) as isize,
+            );
+            
+            if world.collision_at_world_pos(collision_check_feet) ||
+               world.collision_at_world_pos(collision_check_head) {
+                if let Some((global_intersect_coords, global_block_index)) = dda(&world, &(self.position + delta), &vert, len(&(vert))) {
+
+                    if (self.position.x + delta.x) as isize == global_block_index.x {
                         delta.z = 0.0;
                     }
-                    if (self.position.z + delta.z) as usize == block.z {
+                    if (self.position.z + delta.z) as isize == global_block_index.z {
                         delta.x = 0.0;
                     }
-
-                    
-                    //delta -= vert;
                     collision = true;
                 }
-                if let Some((intersect, block)) = dda(&chunk, &(self.position + delta + Y_VECTOR), &vert, len(&(vert))) {
-                    println!("Collision at {:?} {} from player head", intersect, len(&(intersect - self.position)));
-                    //intersect - (vert + self.position);
-                    if (self.position.x + delta.x) as usize == block.x {
+                if let Some((global_intersect_coords, global_block_index)) = dda(&world, &(self.position + delta + Y_VECTOR), &vert, len(&(vert))) {
+                    if (self.position.x + delta.x) as isize == global_block_index.x {
                         delta.z = 0.0;
                     }
-                    if (self.position.z + delta.z) as usize == block.z {
+                    if (self.position.z + delta.z) as isize == global_block_index.z {
                         delta.x = 0.0;
                     }
-
-                    
-                    //delta -= vert;
                     collision = true;
                 }
             }
         }
 
-        if chunk[self.position.x as usize%16][(self.position.y-0.1) as usize%16][self.position.z as usize%16] != 0 {
+        let grounded_check = Vector3::new(
+            self.position.x as isize,
+            (self.position.y-0.1) as isize,
+            self.position.z as isize
+        );
+        if world.collision_at_world_pos(grounded_check) {
             self.grounded = true;
         } else {
             self.grounded = false;
             delta += GRAVITY;
         }
+        
         self.position += delta;
         self.camera.translate(self.position + 1.6 * Y_VECTOR);
     }

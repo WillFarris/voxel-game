@@ -55,25 +55,28 @@ fn main() {
     //let chunks = Vec::with_capacity(5);
     //for i in 0..5 {
     let mut chunk: [[[usize; 16]; 16]; 16] = [[[0; 16]; 16]; 16];
-    chunk[0][0][0] = 1;
-    for x in 1..16 {
-        for y in 1..16 {
-            for z in 1..16 {
-                if (y as f32) < ((x*x + z*z) as f32).sqrt() {
-                    if y < 3 {
-                        chunk[x][y][z] = 1;
-                    } else if y < 4 {
-                        chunk[x][y][z] = 3;
-                    } else if y < 5 {
-                        chunk[x][y][z] = 2;
-                    } else {
-                        chunk[x][y][z] = 0;
-                    }
+    for x in 0..16 {
+        for y in 0..16 {
+            for z in 0..16 {
+                if y < 3 {
+                    chunk[x][y][z] = 1;
+                } else if y < 6 {
+                    chunk[x][y][z] = 3;
+                } else if y < 7 {
+                    chunk[x][y][z] = 2;
+                } else {
+                    chunk[x][y][z] = 0;
                 }
             }
         }
     }
-    world.chunk_from_block_array(Vector3::new(0, 0, 0), chunk);
+
+    for x in 0..10 {
+        for z in 0..10 {
+            world.chunk_from_block_array(Vector3::new(x, 0, z), chunk);
+        }
+    }
+    
 
     /*let mut cursor_cube = [[[0usize; 16]; 16]; 16];
     cursor_cube[0][0][0] = 1;
@@ -82,7 +85,7 @@ fn main() {
     let mut cursor_position: Vector3<f32> = Vector3::new(0.0, 0.0, 0.0);*/
 
     //let mut camera = Camera::new(Vector3::new(-8.0, 11.0, -9.0), Vector3::new(0.568056107, -0.487900823, 0.662770748));
-    let mut player = player::Player::new(Vector3::new(5.0, 5.8, 4.5), Vector3::new(1.0, 0.0, 0.0));
+    let mut player = player::Player::new(Vector3::new(5.0, 10.5, 4.5), Vector3::new(1.0, 0.0, 1.0));
     //camera.set_move_speed(0.5);
 
     unsafe {
@@ -103,7 +106,7 @@ fn main() {
         }
         std::thread::sleep(std::time::Duration::from_nanos(11111111));
 
-        player.update(&chunk);
+        player.update(&world);
         /*if let Some((intersect, block, )) = dda(&chunk, &player.delta, &player.direction, vectormath::len(&player.delta)) {
             cursor_position = intersect;
         }*/
@@ -147,18 +150,15 @@ fn main() {
                     match button {
                         glfw::MouseButton::Button1 => {
                             if action == glfw::Action::Press {
-                                if let Some((_, world_index)) = dda(&chunk, &player.camera.position, &player.camera.forward, 6.0) {
+                                if let Some((_, world_index)) = dda(&world, &player.camera.position, &player.camera.forward, 6.0) {
                                     world.destroy_at_global_pos(world_index);
                                 }
                             }
                         },
                         glfw::MouseButton::Button2 => {
                             if action == glfw::Action::Press {
-                                if let Some((_, world_index)) = dda(&chunk, &player.camera.position, &player.camera.forward, 6.0) {
-                                    //chunk[adjacent.x as usize][adjacent.y as usize][adjacent.z as usize] = 3;
-                                    //mesh_vertices = meshgen::gen_chunk_mesh(&chunk);
-                                    //mesh = mesh::Mesh::new(mesh_vertices, &mesh_texture, &shader);
-                                    //println!("block hit: {:?}", block_index);
+                                if let Some((_, world_index)) = dda(&world, &player.camera.position, &player.camera.forward, 6.0) {
+                                    world.place_at_global_pos(world_index, 4);
                                 }
                             }
                         },

@@ -2,14 +2,14 @@ use std::collections::HashMap;
 
 use cgmath::{Matrix4, Vector3};
 
-use crate::{mesh::{self, Texture, texture_from_file}, meshgen::{self, gen_chunk_mesh}, shader::Shader};
+use crate::{block, mesh::{self, Texture, texture_from_file}, meshgen::{self, gen_chunk_mesh}, shader::Shader};
 
 use std::ffi::CStr;
 
 pub const CHUNK_SIZE: usize = 16;
 
 pub struct Chunk<'a> {
-    pub blocks: [[[usize; CHUNK_SIZE]; CHUNK_SIZE]; CHUNK_SIZE],
+    blocks: [[[usize; CHUNK_SIZE]; CHUNK_SIZE]; CHUNK_SIZE],
     mesh: crate::mesh::Mesh,
     model_matrix: Matrix4<f32>,
     texture: Texture,
@@ -36,15 +36,25 @@ impl<'a> Chunk<'a> {
         self.mesh.draw();
     }
 
+    pub fn block_at_chunk_pos(&self, chunk_index: &Vector3<usize>) -> usize {
+        self.blocks[chunk_index.x][chunk_index.y][chunk_index.z]
+    }
+
     pub fn destroy_at_chunk_pos(&mut self, position: Vector3<usize>) {
         self.blocks[position.x][position.y][position.z] = 0;
+        let mesh_vertices = meshgen::gen_chunk_mesh(&self.blocks);
+        self.mesh = mesh::Mesh::new(mesh_vertices, &self.texture, self.shader);
+    }
+
+    pub fn place_at_chunk_pos(&mut self, position: Vector3<usize>, block_id: usize) {
+        self.blocks[position.x][position.y][position.z] = block_id;
         let mesh_vertices = meshgen::gen_chunk_mesh(&self.blocks);
         self.mesh = mesh::Mesh::new(mesh_vertices, &self.texture, self.shader);
     }
 }
 
 pub struct World<'a> {
-    pub chunks: HashMap<Vector3<isize>, Option<Chunk<'a>>>,
+    chunks: HashMap<Vector3<isize>, Option<Chunk<'a>>>,
     texture_id: u32,
     shader: &'a Shader,
 }
@@ -58,9 +68,9 @@ impl<'a> World<'a> {
         }
     }
 
-    pub fn chunk_from_block_array(&mut self, chunk_world_pos: Vector3<isize>, blocks: [[[usize; CHUNK_SIZE]; CHUNK_SIZE]; CHUNK_SIZE]) {
-        let new_chunk = Chunk::from_blocks(blocks, chunk_world_pos.clone(), self.shader, self.texture_id);
-        self.chunks.insert(chunk_world_pos, Some(new_chunk));
+    pub fn chunk_from_block_array(&mut self, chunk_index: Vector3<isize>, blocks: [[[usize; CHUNK_SIZE]; CHUNK_SIZE]; CHUNK_SIZE]) {
+        let new_chunk = Chunk::from_blocks(blocks, 16 * chunk_index, self.shader, self.texture_id);
+        self.chunks.insert(chunk_index, Some(new_chunk));
     }
 
     pub unsafe fn render(&self, projection_matrix: &Matrix4<f32>, view_matrix: &Matrix4<f32>) {
@@ -71,10 +81,39 @@ impl<'a> World<'a> {
         }
     }
 
-    pub fn destroy_at_global_pos(&self, world_pos: Vector3<usize>) {
-        //chunk[block_index.x as usize][block_index.y as usize][block_index.z as usize] = 0;
-        //mesh_vertices = meshgen::gen_chunk_mesh(&chunk);
-        //mesh = mesh::Mesh::new(mesh_vertices, &mesh_texture, &shader);
-        //println!("block hit: {:?}", block_index);
+    fn chunk_and_block_index(world_pos: &Vector3<isize>) -> (Vector3<isize>, Vector3<usize>) {
+        let chunk_index = world_pos / 16;
+        let block_index = Vector3 {
+            x: world_pos.x as usize % CHUNK_SIZE,
+            y: world_pos.y as usize % CHUNK_SIZE,
+            z: world_pos.z as usize % CHUNK_SIZE,
+        };
+        (chunk_index, block_index)
+    }
+
+    pub fn destroy_at_global_pos(&mut self, world_pos: Vector3<isize>) {
+        let (chunk_index, block_index) = World::chunk_and_block_index(&world_pos);
+        if let Some(Some(chunk)) = self.chunks.get_mut(&chunk_index) {
+            chunk.destroy_at_chunk_pos(block_index);
+        }
+    }
+
+    pub fn place_at_global_pos(&mut self, world_pos: Vector3<isize>, block_id: usize) {
+        let (chunk_index, block_index) = World::chunk_and_block_index(&world_pos);
+        if let Some(Some(chunk)) = self.chunks.get_mut(&chunk_index) {
+            chunk.place_at_chunk_pos(block_index, block_id);
+        }
+    }
+
+    pub fn block_at_global_pos(&self, world_pos: Vector3<isize>) -> usize {
+        let (chunk_index, block_index) = World::chunk_and_block_index(&world_pos);
+        if let Some(chunk) = &self.chunks[&chunk_index] {
+            return chunk.block_at_chunk_pos(&block_index);
+        }
+        0
+    }
+
+    pub fn collision_at_world_pos(&self, world_pos: Vector3<isize>) -> bool {
+        self.block_at_global_pos(world_pos) != 0
     }
 }

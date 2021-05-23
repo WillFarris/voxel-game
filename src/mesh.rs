@@ -31,40 +31,44 @@ impl Mesh {
         mesh
     }
 
-    unsafe fn setup_mesh(&mut self, shader: &Shader) {
+    fn setup_mesh(&mut self, shader: &Shader) {
+        if self.vertices.len() == 0 {
+            panic!("[ Mesh::setup_mesh() ] No vertices to setup!")
+        }
+        unsafe {
+            gl::ActiveTexture(gl::TEXTURE0);
 
-        gl::ActiveTexture(gl::TEXTURE0);
+            gl::TexParameterf(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::NEAREST as f32);
+            gl::TexParameterf(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::NEAREST as f32);
 
-        gl::TexParameterf(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::NEAREST as f32);
-        gl::TexParameterf(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::NEAREST as f32);
+            let sampler = CString::new("texture_map").unwrap().as_ptr();
+            gl::Uniform1i(gl::GetUniformLocation(shader.id, sampler), 0);
+            gl::BindTexture(gl::TEXTURE_2D, self.texture.id);
 
-        let sampler = CString::new("texture_map").unwrap().as_ptr();
-        gl::Uniform1i(gl::GetUniformLocation(shader.id, sampler), 0);
-        gl::BindTexture(gl::TEXTURE_2D, self.texture.id);
+            gl::GenVertexArrays(1, &mut self.vao);
+            gl::GenBuffers(1, &mut self.vbo);
 
-        gl::GenVertexArrays(1, &mut self.vao);
-        gl::GenBuffers(1, &mut self.vbo);
+            gl::BindVertexArray(self.vao);
 
-        gl::BindVertexArray(self.vao);
+            gl::BindBuffer(gl::ARRAY_BUFFER, self.vbo);
 
-        gl::BindBuffer(gl::ARRAY_BUFFER, self.vbo);
+            let size = (self.vertices.len() * size_of::<Vertex>()) as GLsizeiptr;
+            let data = &self.vertices[0] as *const Vertex as *const c_void;
+            gl::BufferData(gl::ARRAY_BUFFER, size, data, gl::STATIC_DRAW);
 
-        let size = (self.vertices.len() * size_of::<Vertex>()) as GLsizeiptr;
-        let data = &self.vertices[0] as *const Vertex as *const c_void;
-        gl::BufferData(gl::ARRAY_BUFFER, size, data, gl::STATIC_DRAW);
+            //TODO: do the same as above if indices are desired later
 
-        //TODO: do the same as above if indices are desired later
-
-        let size = size_of::<Vertex>() as i32;
-        // vertex Positions
-        gl::EnableVertexAttribArray(0);
-        gl::VertexAttribPointer(0, 3, gl::FLOAT, gl::FALSE, size, offset_of!(Vertex, position) as *const c_void);
-        // vertex normals
-        gl::EnableVertexAttribArray(1);
-        gl::VertexAttribPointer(1, 3, gl::FLOAT, gl::FALSE, size, offset_of!(Vertex, normal) as *const c_void);
-        // vertex texture coords
-        gl::EnableVertexAttribArray(2);
-        gl::VertexAttribPointer(2, 2, gl::FLOAT, gl::FALSE, size, offset_of!(Vertex, tex_coords) as *const c_void);
+            let size = size_of::<Vertex>() as i32;
+            // vertex Positions
+            gl::EnableVertexAttribArray(0);
+            gl::VertexAttribPointer(0, 3, gl::FLOAT, gl::FALSE, size, offset_of!(Vertex, position) as *const c_void);
+            // vertex normals
+            gl::EnableVertexAttribArray(1);
+            gl::VertexAttribPointer(1, 3, gl::FLOAT, gl::FALSE, size, offset_of!(Vertex, normal) as *const c_void);
+            // vertex texture coords
+            gl::EnableVertexAttribArray(2);
+            gl::VertexAttribPointer(2, 2, gl::FLOAT, gl::FALSE, size, offset_of!(Vertex, tex_coords) as *const c_void);
+        }
     }
 
     pub unsafe fn draw(&self) {
@@ -93,8 +97,6 @@ pub fn texture_from_file(path: &str, directory: &str) -> u32 {
     
     unsafe {
         gl::GenTextures(1, &mut textureID);
-
-        
 
         gl::BindTexture(gl::TEXTURE_2D, textureID);
         gl::TexImage2D(gl::TEXTURE_2D, 0, format as i32, img.width() as i32, img.height() as i32,

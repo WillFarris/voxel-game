@@ -8,6 +8,7 @@ mod block;
 mod shader;
 mod macros;
 mod player;
+mod world;
 
 use block::{BLOCKS, Block};
 use camera::*;
@@ -48,42 +49,37 @@ fn main() {
 
     //let mut cube1 = cube::Cube::new([-1.0, 5.0, 5.0], [0.9, 0.2, 0.2]);
 
-    
+    let texture_id = texture_from_file("terrain.png", ".");
+    let mut world = world::World::new(texture_id, &shader);
     
     //let chunks = Vec::with_capacity(5);
     //for i in 0..5 {
-        let mut chunk: [[[usize; 16]; 16]; 16] = [[[0; 16]; 16]; 16];
-        chunk[0][0][0] = 1;
-        for x in 1..16 {
-            for y in 1..16 {
-                for z in 1..16 {
-                    if (y as f32) < ((x*x + z*z) as f32).sqrt() {
-                        if y < 3 {
-                            chunk[x][y][z] = 1;
-                        } else if y < 4 {
-                            chunk[x][y][z] = 3;
-                        } else if y < 5 {
-                            chunk[x][y][z] = 2;
-                        } else {
-                            chunk[x][y][z] = 0;
-                        }
+    let mut chunk: [[[usize; 16]; 16]; 16] = [[[0; 16]; 16]; 16];
+    chunk[0][0][0] = 1;
+    for x in 1..16 {
+        for y in 1..16 {
+            for z in 1..16 {
+                if (y as f32) < ((x*x + z*z) as f32).sqrt() {
+                    if y < 3 {
+                        chunk[x][y][z] = 1;
+                    } else if y < 4 {
+                        chunk[x][y][z] = 3;
+                    } else if y < 5 {
+                        chunk[x][y][z] = 2;
+                    } else {
+                        chunk[x][y][z] = 0;
                     }
                 }
             }
         }
-        //chunks.push(chunk);
-    //}
+    }
+    world.chunk_from_block_array(Vector3::new(0, 0, 0), chunk);
 
-    let texture_id = texture_from_file("terrain.png", ".");
-    let mesh_texture = Texture {id: texture_id};
-    let mut mesh_vertices = gen_chunk_mesh(&chunk);
-    let mut mesh = mesh::Mesh::new(mesh_vertices, &mesh_texture, &shader);
-
-    let mut cursor_cube = [[[0usize; 16]; 16]; 16];
+    /*let mut cursor_cube = [[[0usize; 16]; 16]; 16];
     cursor_cube[0][0][0] = 1;
     let cursor_cube_verts = gen_chunk_mesh(&cursor_cube);
     let cursor_cube_mesh = mesh::Mesh::new(cursor_cube_verts, &mesh_texture, &shader);
-    let mut cursor_position: Vector3<f32> = Vector3::new(0.0, 0.0, 0.0);
+    let mut cursor_position: Vector3<f32> = Vector3::new(0.0, 0.0, 0.0);*/
 
     //let mut camera = Camera::new(Vector3::new(-8.0, 11.0, -9.0), Vector3::new(0.568056107, -0.487900823, 0.662770748));
     let mut player = player::Player::new(Vector3::new(5.0, 5.8, 4.5), Vector3::new(1.0, 0.0, 0.0));
@@ -92,7 +88,6 @@ fn main() {
     unsafe {
         gl::Enable(gl::DEPTH_TEST);
     }
-
     
     let mut previous_time = glfw.get_time();
     let mut frame_count = 0;
@@ -123,19 +118,18 @@ fn main() {
 
             let projection: Matrix4<f32> = perspective_matrix();//cgmath::perspective(cgmath::Deg(90.0), WIDTH as f32 / HEIGHT as f32, 0.1, 100.0);
             let view = player.camera.view_matrix();
-            let model = Matrix4::from_scale(1.0);
+            //let model = Matrix4::from_scale(1.0);
 
             shader.set_mat4(c_str!("perspective_matrix"), &projection);
             shader.set_mat4(c_str!("view_matrix"), &view);
-            shader.set_mat4(c_str!("model_matrix"), &model);
-            mesh.draw();
+            world.render(&projection, &view);
 
             //let cursor_projection: Matrix4<f32> = perspective_matrix();//cgmath::perspective(cgmath::Deg(90.0), WIDTH as f32 / HEIGHT as f32, 0.1, 100.0);
             //let view = player.camera.view_matrix();
-            let cursor_model = Matrix4::from_translation(cursor_position);
+            /*let cursor_model = Matrix4::from_translation(cursor_position);
             shader.set_mat4(c_str!("model_matrix"), &cursor_model);
 
-            cursor_cube_mesh.draw();
+            cursor_cube_mesh.draw();*/
 
         }
         
@@ -153,20 +147,19 @@ fn main() {
                     match button {
                         glfw::MouseButton::Button1 => {
                             if action == glfw::Action::Press {
-                                if let Some((chunk_index, block_index)) = dda(&chunk, &player.camera.position, &player.camera.forward, 6.0) {
-                                    chunk[block_index.x as usize][block_index.y as usize][block_index.z as usize] = 0;
-                                    mesh_vertices = meshgen::gen_chunk_mesh(&chunk);
-                                    mesh = mesh::Mesh::new(mesh_vertices, &mesh_texture, &shader);
-                                    //println!("block hit: {:?}", block_index);
+                                if let Some((_, world_index)) = dda(&chunk, &player.camera.position, &player.camera.forward, 6.0) {
+                                    world.destroy_at_global_pos(world_index);
                                 }
                             }
                         },
                         glfw::MouseButton::Button2 => {
                             if action == glfw::Action::Press {
-                                if let Some((adjacent, block_index)) = dda(&chunk, &player.camera.position, &player.camera.forward, 6.0) {
-                                    chunk[adjacent.x as usize][adjacent.y as usize][adjacent.z as usize] = 3;
-                                    mesh_vertices = meshgen::gen_chunk_mesh(&chunk);
-                                    mesh = mesh::Mesh::new(mesh_vertices, &mesh_texture, &shader);
+                                if let Some((_, world_index)) = dda(&chunk, &player.camera.position, &player.camera.forward, 6.0) {
+                                    
+                                    
+                                    //chunk[adjacent.x as usize][adjacent.y as usize][adjacent.z as usize] = 3;
+                                    //mesh_vertices = meshgen::gen_chunk_mesh(&chunk);
+                                    //mesh = mesh::Mesh::new(mesh_vertices, &mesh_texture, &shader);
                                     //println!("block hit: {:?}", block_index);
                                 }
                             }

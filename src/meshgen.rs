@@ -70,7 +70,6 @@ const CUBE_FACES: [[Vertex; 6]; 6] = [
     ],
 ];
 
-
 fn push_face(position: &[f32; 3], face: usize, vertices: &mut Vec<Vertex>, texmap_offset: &(usize, usize)) {
 
     

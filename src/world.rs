@@ -8,34 +8,43 @@ use std::ffi::CStr;
 
 pub const CHUNK_SIZE: usize = 16;
 
-pub struct Chunk {
+pub struct Chunk<'a> {
     pub blocks: [[[usize; CHUNK_SIZE]; CHUNK_SIZE]; CHUNK_SIZE],
     mesh: crate::mesh::Mesh,
     model_matrix: Matrix4<f32>,
+    texture: Texture,
+    shader: &'a Shader,
 }
 
-impl Chunk {
-    pub fn from_blocks(blocks: [[[usize; CHUNK_SIZE]; CHUNK_SIZE]; CHUNK_SIZE], position: Vector3<isize>, shader: &Shader, texture_id: u32) -> Self {
-        let mesh_texture = Texture {id: texture_id};
+impl<'a> Chunk<'a> {
+    pub fn from_blocks(blocks: [[[usize; CHUNK_SIZE]; CHUNK_SIZE]; CHUNK_SIZE], position: Vector3<isize>, shader: &'a Shader, texture_id: u32) -> Self {
+        let texture = Texture {id: texture_id};
         let mut mesh_vertices = gen_chunk_mesh(&blocks);
-        let mut mesh = mesh::Mesh::new(mesh_vertices, &mesh_texture, &shader);
+        let mut mesh = mesh::Mesh::new(mesh_vertices, &texture, &shader);
 
         Self {
             blocks,
             mesh,
             model_matrix: Matrix4::from_translation(Vector3::new(position.x as f32, position.y as f32, position.z as f32)),
+            texture,
+            shader,
         }
     }
-    
 
     pub unsafe fn render(&self, projection_matrix: &Matrix4<f32>, view_matrix: &Matrix4<f32>, shader: &Shader) {
         shader.set_mat4(c_str!("model_matrix"), &self.model_matrix);
         self.mesh.draw();
     }
+
+    pub fn destroy_at_chunk_pos(&mut self, position: Vector3<usize>) {
+        self.blocks[position.x][position.y][position.z] = 0;
+        let mesh_vertices = meshgen::gen_chunk_mesh(&self.blocks);
+        self.mesh = mesh::Mesh::new(mesh_vertices, &self.texture, self.shader);
+    }
 }
 
 pub struct World<'a> {
-    pub chunks: HashMap<Vector3<isize>, Option<Chunk>>,
+    pub chunks: HashMap<Vector3<isize>, Option<Chunk<'a>>>,
     texture_id: u32,
     shader: &'a Shader,
 }

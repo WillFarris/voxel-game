@@ -155,8 +155,6 @@ fn main() {
                         glfw::MouseButton::Button2 => {
                             if action == glfw::Action::Press {
                                 if let Some((_, world_index)) = dda(&chunk, &player.camera.position, &player.camera.forward, 6.0) {
-                                    
-                                    
                                     //chunk[adjacent.x as usize][adjacent.y as usize][adjacent.z as usize] = 3;
                                     //mesh_vertices = meshgen::gen_chunk_mesh(&chunk);
                                     //mesh = mesh::Mesh::new(mesh_vertices, &mesh_texture, &shader);

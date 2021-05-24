@@ -56,9 +56,9 @@ impl<'a> World<'a> {
         let noise_z_offset = rand::random::<f64>();
         let noise_scale = 0.03;
 
-        let num_square_chunks: isize = 10;
-        for chunk_x in -num_square_chunks/2..num_square_chunks/2 {
-            for chunk_z in 0..num_square_chunks {
+        let chunk_radius: isize = 5;
+        for chunk_x in -chunk_radius..chunk_radius {
+            for chunk_z in -chunk_radius..chunk_radius {
                 let mut cur_chunk: [[[usize; CHUNK_SIZE]; CHUNK_SIZE]; CHUNK_SIZE] = [[[0; CHUNK_SIZE]; CHUNK_SIZE]; CHUNK_SIZE];
                 for block_x in 0..CHUNK_SIZE {
                     for block_y in 0..CHUNK_SIZE {
@@ -122,12 +122,35 @@ impl<'a> World<'a> {
     }
 
     fn chunk_and_block_index(world_pos: &Vector3<isize>) -> (Vector3<isize>, Vector3<usize>) {
-        let chunk_index = world_pos / CHUNK_SIZE as isize;
-        let block_index = Vector3 {
-            x: world_pos.x as usize % CHUNK_SIZE,
-            y: world_pos.y as usize % CHUNK_SIZE,
-            z: world_pos.z as usize % CHUNK_SIZE,
+        let chunk_index = Vector3 {
+            x: (world_pos.x as f32 / CHUNK_SIZE as f32).floor() as isize,
+            y: (world_pos.y as f32 / CHUNK_SIZE as f32).floor() as isize,
+            z: (world_pos.z as f32 / CHUNK_SIZE as f32).floor() as isize,
         };
+        //TODO: Make this work with negative numbers
+        //Currently: e.g. -19 as usize % 16 is not correct
+        let mut block_index_signed = Vector3 {
+            x: (world_pos.x % CHUNK_SIZE as isize),
+            y: (world_pos.y % CHUNK_SIZE as isize),
+            z: (world_pos.z % CHUNK_SIZE as isize),
+        };
+        if world_pos.x < 0 {
+            block_index_signed.x = 15 + block_index_signed.x;
+        }
+        if world_pos.y < 0 {
+            block_index_signed.y = 15 + block_index_signed.y;
+        }
+        if world_pos.z < 0 {
+            block_index_signed.z = 15 + block_index_signed.z;
+        }
+        println!("world pos: {:?}\nblock_index: {:?}", world_pos, block_index_signed);
+
+        let block_index = Vector3 {
+            x: block_index_signed.x as usize,
+            y: block_index_signed.y as usize,
+            z: block_index_signed.z as usize,
+        };
+        
         (chunk_index, block_index)
     }
 

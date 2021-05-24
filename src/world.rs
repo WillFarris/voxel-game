@@ -38,18 +38,6 @@ impl Chunk {
     pub fn block_at_chunk_pos(&self, chunk_index: &Vector3<usize>) -> usize {
         self.blocks[chunk_index.x][chunk_index.y][chunk_index.z]
     }
-
-    /*pub fn destroy_at_chunk_pos(&mut self, position: Vector3<usize>) {
-        self.blocks[position.x][position.y][position.z] = 0;
-        let mesh_vertices = meshgen::gen_chunk_mesh(&self.blocks);
-        self.mesh = mesh::Mesh::new(mesh_vertices, &self.texture, self.shader);
-    }*/
-
-    /*pub fn place_at_chunk_pos(&mut self, position: Vector3<usize>, block_id: usize) {
-        self.blocks[position.x][position.y][position.z] = block_id;
-        let mesh_vertices = meshgen::gen_chunk_mesh(&self.blocks);
-        self.mesh = mesh::Mesh::new(mesh_vertices, &self.texture, self.shader);
-    }*/
 }
 
 pub struct World<'a> {
@@ -69,7 +57,7 @@ impl<'a> World<'a> {
         let noise_scale = 0.03;
 
         let num_square_chunks: isize = 10;
-        for chunk_x in 0..num_square_chunks {
+        for chunk_x in -num_square_chunks/2..num_square_chunks/2 {
             for chunk_z in 0..num_square_chunks {
                 let mut cur_chunk: [[[usize; CHUNK_SIZE]; CHUNK_SIZE]; CHUNK_SIZE] = [[[0; CHUNK_SIZE]; CHUNK_SIZE]; CHUNK_SIZE];
                 for block_x in 0..CHUNK_SIZE {
@@ -134,7 +122,7 @@ impl<'a> World<'a> {
     }
 
     fn chunk_and_block_index(world_pos: &Vector3<isize>) -> (Vector3<isize>, Vector3<usize>) {
-        let chunk_index = world_pos / 16;
+        let chunk_index = world_pos / CHUNK_SIZE as isize;
         let block_index = Vector3 {
             x: world_pos.x as usize % CHUNK_SIZE,
             y: world_pos.y as usize % CHUNK_SIZE,

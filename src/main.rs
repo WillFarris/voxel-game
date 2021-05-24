@@ -26,8 +26,8 @@ extern crate gl;
 
 const _SCENE_LIGHT: [f32; 3] = [-1.0, 0.701, -1.0];
 
-const WIDTH: u32 = 1920;
-const HEIGHT: u32 = 1080;
+const WIDTH: u32 = 1000;
+const HEIGHT: u32 = 650;
 
 fn main() {
 
@@ -65,7 +65,9 @@ fn main() {
     //let mut cube1 = cube::Cube::new([-1.0, 5.0, 5.0], [0.9, 0.2, 0.2]);
 
     let texture_id = texture_from_file("terrain.png", ".");
-    let mut world = world::World::new(mesh::Texture{id: texture_id}, &world_shader, 694949);    
+    let seed = rand::random();
+    println!("Seed: {}", seed);
+    let mut world = world::World::new(mesh::Texture{id: texture_id}, &world_shader, seed);    
 
     let mut player = player::Player::new(Vector3::new(5.0, 10.5, 4.5), Vector3::new(1.0, 0.0, 1.0));
 

@@ -95,7 +95,7 @@ impl<'a> World<'a> {
                 }
                 //world.chunk_from_block_array(Vector3::new(chunk_x as isize, 0, chunk_z as isize), cur_chunk);
                 let chunk_pos = Vector3::new(chunk_x, 0, chunk_z);
-                chunks.insert(chunk_pos, Some(Chunk::from_blocks(cur_chunk, chunk_pos, None, texture.id)));
+                chunks.insert(chunk_pos.clone(), Some(Chunk::from_blocks(cur_chunk, 16 * chunk_pos, None, texture.id)));
             }
         }
 

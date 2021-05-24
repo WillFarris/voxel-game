@@ -33,11 +33,11 @@ fn main() {
 
     let mut glfw = glfw::init(glfw::FAIL_ON_ERRORS).unwrap();
 
-    //#[cfg(target_arch = "aarch64")] {
+    #[cfg(target_arch = "aarch64")] {
         glfw.window_hint(glfw::WindowHint::ContextVersion(3, 1));
         glfw.window_hint(glfw::WindowHint::ClientApi(glfw::ClientApiHint::OpenGlEs));
         glfw.window_hint(glfw::WindowHint::OpenGlForwardCompat(true));
-    //}
+    }
 
     let (mut window, events) = glfw.create_window(WIDTH, HEIGHT, "", glfw::WindowMode::Windowed).expect("Failed to create GLFW window");
 
@@ -50,16 +50,16 @@ fn main() {
 
     gl::load_with(|symbol| window.get_proc_address(symbol) as *const _);
 
-    let world_vertex_shader_path = "shaders/cube_vertex_es.glsl";/*if cfg!(aarch64) {
+    let world_vertex_shader_path = if cfg!(aarch64) {
         "shaders/cube_vertex_es.glsl"
     } else {
         "shaders/cube_vertex.glsl"
-    };*/
-    let world_fragment_shader_path = "shaders/cube_fragment_es.glsl";/*if cfg!(aarch64) {
+    };
+    let world_fragment_shader_path = if cfg!(aarch64) {
         "shaders/cube_fragment_es.glsl"
     } else {
         "shaders/cube_fragment.glsl"
-    };*/
+    };
     let world_shader = shader::Shader::new(world_vertex_shader_path, world_fragment_shader_path);
 
     //let mut cube1 = cube::Cube::new([-1.0, 5.0, 5.0], [0.9, 0.2, 0.2]);

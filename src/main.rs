@@ -26,14 +26,14 @@ extern crate gl;
 
 const _SCENE_LIGHT: [f32; 3] = [-1.0, 0.701, -1.0];
 
-const WIDTH: u32 = 800;
-const HEIGHT: u32 = 600;
+const WIDTH: u32 = 1920;
+const HEIGHT: u32 = 1080;
 
 fn main() {
 
     let mut glfw = glfw::init(glfw::FAIL_ON_ERRORS).unwrap();
 
-    #[cfg(target_arch = "aarch64")] {
+    #[cfg(target_arch = "arm")] {
         glfw.window_hint(glfw::WindowHint::ContextVersion(3, 1));
         glfw.window_hint(glfw::WindowHint::ClientApi(glfw::ClientApiHint::OpenGlEs));
         glfw.window_hint(glfw::WindowHint::OpenGlForwardCompat(true));
@@ -50,12 +50,12 @@ fn main() {
 
     gl::load_with(|symbol| window.get_proc_address(symbol) as *const _);
 
-    let world_vertex_shader_path = if cfg!(aarch64) {
+    let world_vertex_shader_path = if cfg!(target_arch = "arm") {
         "shaders/cube_vertex_es.glsl"
     } else {
         "shaders/cube_vertex.glsl"
     };
-    let world_fragment_shader_path = if cfg!(aarch64) {
+    let world_fragment_shader_path = if cfg!(target_arch = "arm") {
         "shaders/cube_fragment_es.glsl"
     } else {
         "shaders/cube_fragment.glsl"
@@ -67,15 +67,7 @@ fn main() {
     let texture_id = texture_from_file("terrain.png", ".");
     let mut world = world::World::new(mesh::Texture{id: texture_id}, &world_shader, 694949);    
 
-    /*let mut cursor_cube = [[[0usize; 16]; 16]; 16];
-    cursor_cube[0][0][0] = 1;
-    let cursor_cube_verts = gen_chunk_mesh(&cursor_cube);
-    let cursor_cube_mesh = mesh::Mesh::new(cursor_cube_verts, &mesh_texture, &world_shader);
-    let mut cursor_position: Vector3<f32> = Vector3::new(0.0, 0.0, 0.0);*/
-
-    //let mut camera = Camera::new(Vector3::new(-8.0, 11.0, -9.0), Vector3::new(0.568056107, -0.487900823, 0.662770748));
     let mut player = player::Player::new(Vector3::new(5.0, 10.5, 4.5), Vector3::new(1.0, 0.0, 1.0));
-    //camera.set_move_speed(0.5);
 
     unsafe {
         gl::Enable(gl::DEPTH_TEST);

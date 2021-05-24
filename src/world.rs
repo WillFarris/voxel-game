@@ -68,7 +68,7 @@ impl<'a> World<'a> {
         let noise_z_offset = rand::random::<f64>();
         let noise_scale = 0.03;
 
-        let num_square_chunks: isize = 5;
+        let num_square_chunks: isize = 10;
         for chunk_x in 0..num_square_chunks {
             for chunk_z in 0..num_square_chunks {
                 let mut cur_chunk: [[[usize; CHUNK_SIZE]; CHUNK_SIZE]; CHUNK_SIZE] = [[[0; CHUNK_SIZE]; CHUNK_SIZE]; CHUNK_SIZE];

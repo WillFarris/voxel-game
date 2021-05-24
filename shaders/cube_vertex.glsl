@@ -15,11 +15,10 @@ out vec2 v_tex_coords;
 void main() {
     mat4 camera_matrix = perspective_matrix * view_matrix;
     
-    
-    gl_Position = camera_matrix * model_matrix * vec4(position, 1.0);
-
-    v_position =  (camera_matrix * vec4(position, 1.0)).xyz;
+    vec4 pos = camera_matrix * model_matrix * vec4(position, 1.0);
+    v_position = pos.xyz;
     v_normal = transpose(inverse(mat3(model_matrix))) * normal;
     v_tex_coords = tex_coords;
-    
+
+    gl_Position = pos;
 }

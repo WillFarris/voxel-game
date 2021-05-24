@@ -25,15 +25,14 @@ impl Mesh {
             vao: 0, vbo: 0
         };
         
-        unsafe { 
-            mesh.setup_mesh(shader);
-        }
+        mesh.setup_mesh(shader);
         mesh
     }
 
     fn setup_mesh(&mut self, shader: &Shader) {
         if self.vertices.len() == 0 {
-            panic!("[ Mesh::setup_mesh() ] No vertices to setup!")
+            return;
+            //panic!("[ Mesh::setup_mesh() ] No vertices to setup!")
         }
         unsafe {
             gl::ActiveTexture(gl::TEXTURE0);
@@ -41,7 +40,8 @@ impl Mesh {
             gl::TexParameterf(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::NEAREST as f32);
             gl::TexParameterf(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::NEAREST as f32);
 
-            let sampler = CString::new("texture_map").unwrap().as_ptr();
+            let sampler_str = CString::new("texture_map").unwrap();
+            let sampler = sampler_str.as_ptr();
             gl::Uniform1i(gl::GetUniformLocation(shader.id, sampler), 0);
             gl::BindTexture(gl::TEXTURE_2D, self.texture.id);
 
@@ -71,10 +71,12 @@ impl Mesh {
         }
     }
 
-    pub unsafe fn draw(&self) {
-        gl::BindVertexArray(self.vao);
-        gl::DrawArrays(gl::TRIANGLES, 0, self.vertices.len() as i32);
-        gl::BindVertexArray(0);
+    pub fn draw(&self) {
+        unsafe {
+            gl::BindVertexArray(self.vao);
+            gl::DrawArrays(gl::TRIANGLES, 0, self.vertices.len() as i32);
+            gl::BindVertexArray(0);
+        }
     }
 }
 
@@ -93,12 +95,12 @@ pub fn texture_from_file(path: &str, directory: &str) -> u32 {
 
     let data = img.as_bytes();
 
-    let mut textureID = 0;
+    let mut texture_id = 0;
     
     unsafe {
-        gl::GenTextures(1, &mut textureID);
+        gl::GenTextures(1, &mut texture_id);
 
-        gl::BindTexture(gl::TEXTURE_2D, textureID);
+        gl::BindTexture(gl::TEXTURE_2D, texture_id);
         gl::TexImage2D(gl::TEXTURE_2D, 0, format as i32, img.width() as i32, img.height() as i32,
             0, format, gl::UNSIGNED_BYTE, &data[0] as *const u8 as *const c_void);
         gl::GenerateMipmap(gl::TEXTURE_2D);
@@ -109,5 +111,5 @@ pub fn texture_from_file(path: &str, directory: &str) -> u32 {
         gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::LINEAR as i32);
     }
 
-    textureID
+    texture_id
 }

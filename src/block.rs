@@ -11,6 +11,7 @@ pub const BLOCKS: [Block; 7] = [
 
 ];
 
+#[allow(unused)]
 #[derive(Clone, Copy)]
 pub enum TextureType {
     Single(usize, usize),
@@ -18,6 +19,7 @@ pub enum TextureType {
     TopSideBottom((usize, usize), (usize, usize), (usize, usize)),
 }
 
+#[allow(unused)]
 #[derive(Copy, Clone)]
 pub struct Block {
     pub(crate) id: usize,

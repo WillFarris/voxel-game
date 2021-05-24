@@ -2,8 +2,10 @@ use cgmath::{Matrix3, Vector3, Vector4};
 
 use crate::world;
 
+#[allow(unused)]
 pub const X_VECTOR: Vector3<f32> = Vector3::new(1.0, 0.0, 0.0);
 pub const Y_VECTOR: Vector3<f32> = Vector3::new(0.0, 1.0, 0.0);
+#[allow(unused)]
 pub const Z_VECTOR: Vector3<f32> = Vector3::new(0.0, 0.0, 1.0);
 
 #[derive(PartialEq)]
@@ -106,6 +108,7 @@ pub fn cross(a: &Vector3<f32>, b: &Vector3<f32>) -> Vector3<f32> {
     )
 }
 
+#[allow(unused)]
 pub fn dot(u: &Vector3<f32>, v: &Vector3<f32>) -> f32 {
     u.x * v.x + u.y * v.y + u.z * v.z
 }

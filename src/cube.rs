@@ -1,6 +1,7 @@
-use crate::{camera::Camera, vertex::*};
+use crate::vertex::*;
 use cgmath::{Vector2, Vector3};
 
+#[allow(unused)]
 const CUBE_VERTICES: [Vertex; 36] = [
     Vertex { position: Vector3::new(-0.5,  0.5,  0.5), normal: Vector3::new( 0.0,  0.0,  1.0), tex_coords: Vector2::new(0.0, 0.0) },   // Front-top-left
     Vertex { position: Vector3::new( 0.5,  0.5,  0.5), normal: Vector3::new( 0.0,  0.0,  1.0), tex_coords: Vector2::new(0.0, 0.0) },   // Front-top-right
@@ -51,6 +52,7 @@ const CUBE_VERTICES: [Vertex; 36] = [
     Vertex { position: Vector3::new( 0.5,  0.5, -0.5), normal: Vector3::new( 0.0,  0.0, -1.0), tex_coords: Vector2::new(0.0, 0.0) }     // Back-top-right
 ];
 
+#[allow(unused)]
 pub struct Cube {
     position: [f32; 3],
     color: [f32; 3],
@@ -60,6 +62,7 @@ pub struct Cube {
     //vertices: Vec<Vertex>,
 }
 
+#[allow(unused)]
 impl Cube {
     pub fn new(position: [f32; 3], color: [f32; 3]) -> Self {
         Self {

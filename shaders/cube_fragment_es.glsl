@@ -15,10 +15,8 @@ void main() {
 
     vec3 light = vec3(0.3, 0.7, -0.701);
 
-
     float diffuse = max(dot(normalize(v_normal), normalize(light)), 0.2);
 
-    //vec3 tex_color = vec3(0.1, 0.9, 0.1);
     vec3 tex_color = texture(texture_map, v_tex_coords).rgb;
 
     vec3 camera_dir = normalize(-v_position);

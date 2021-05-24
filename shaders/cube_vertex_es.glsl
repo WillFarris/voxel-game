@@ -1,5 +1,7 @@
 #version 310 es
 
+precision mediump float;
+
 in vec3 position;
 in vec3 normal;
 in vec2 tex_coords;

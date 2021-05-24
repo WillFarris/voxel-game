@@ -11,7 +11,7 @@ pub struct Texture {
     pub id: u32,
 }
 
-pub(crate) struct Mesh {
+pub struct Mesh {
     pub vertices: Vec<Vertex>,
     pub texture: Texture,
     pub vao: u32,

@@ -26,18 +26,18 @@ extern crate gl;
 
 const _SCENE_LIGHT: [f32; 3] = [-1.0, 0.701, -1.0];
 
-const WIDTH: u32 = 1920;
-const HEIGHT: u32 = 1280;
+const WIDTH: u32 = 800;
+const HEIGHT: u32 = 600;
 
 fn main() {
 
     let mut glfw = glfw::init(glfw::FAIL_ON_ERRORS).unwrap();
 
-    #[cfg(target_arch = "aarch64")] {
+    //#[cfg(target_arch = "aarch64")] {
         glfw.window_hint(glfw::WindowHint::ContextVersion(3, 1));
         glfw.window_hint(glfw::WindowHint::ClientApi(glfw::ClientApiHint::OpenGlEs));
         glfw.window_hint(glfw::WindowHint::OpenGlForwardCompat(true));
-    }
+    //}
 
     let (mut window, events) = glfw.create_window(WIDTH, HEIGHT, "", glfw::WindowMode::Windowed).expect("Failed to create GLFW window");
 
@@ -50,62 +50,22 @@ fn main() {
 
     gl::load_with(|symbol| window.get_proc_address(symbol) as *const _);
 
-    let world_vertex_shader_path = if cfg!(aarch64) {
+    let world_vertex_shader_path = "shaders/cube_vertex_es.glsl";/*if cfg!(aarch64) {
         "shaders/cube_vertex_es.glsl"
     } else {
         "shaders/cube_vertex.glsl"
-    };
-    let world_fragment_shader_path = if cfg!(aarch64) {
+    };*/
+    let world_fragment_shader_path = "shaders/cube_fragment_es.glsl";/*if cfg!(aarch64) {
         "shaders/cube_fragment_es.glsl"
     } else {
         "shaders/cube_fragment.glsl"
-    };
+    };*/
     let world_shader = shader::Shader::new(world_vertex_shader_path, world_fragment_shader_path);
 
     //let mut cube1 = cube::Cube::new([-1.0, 5.0, 5.0], [0.9, 0.2, 0.2]);
 
     let texture_id = texture_from_file("terrain.png", ".");
-    let mut world = world::World::new(texture_id, &world_shader);
-
-    let perlin = Perlin::new();
-    perlin.set_seed(rand::random());
-
-    let noise_x_offset = rand::random::<f64>();
-    let noise_z_offset = rand::random::<f64>();
-    let noise_scale = 0.03;
-
-    let num_square_chunks = 10;
-    for chunk_x in 0..num_square_chunks {
-        for chunk_z in 0..num_square_chunks {
-            let mut cur_chunk: [[[usize; CHUNK_SIZE]; CHUNK_SIZE]; CHUNK_SIZE] = [[[0; CHUNK_SIZE]; CHUNK_SIZE]; CHUNK_SIZE];
-            for block_x in 0..CHUNK_SIZE {
-                for block_y in 0..CHUNK_SIZE {
-                    for block_z in 0..CHUNK_SIZE {
-                        let global_x = noise_scale * (block_x + (chunk_x * CHUNK_SIZE)) as f64;
-                        let global_z = noise_scale * (block_z + (chunk_z * CHUNK_SIZE)) as f64;
-                        let max_y = {
-                            let noise_val = (10.0 * (perlin.get([global_x + noise_x_offset, global_z + noise_z_offset])+1.0)/2.0 + 1.0) as usize;
-
-                            //noise_val += (5.0 * (perlin.get([2.0 * global_x + noise_x_offset, 2.0 * global_z + noise_z_offset])+1.0)/2.0 + 1.0) as usize;
-
-                            noise_val
-                        };
-                        if block_y < max_y {
-                            if block_y == max_y-1 {
-                                cur_chunk[block_x][block_y][block_z] = 2;
-                            } else if block_y < max_y/2 {
-                                cur_chunk[block_x][block_y][block_z] = 1;
-                            } else {
-                                cur_chunk[block_x][block_y][block_z] = 3;
-                            }
-                        }
-                    }
-                }
-            }
-            world.chunk_from_block_array(Vector3::new(chunk_x as isize, 0, chunk_z as isize), cur_chunk);
-        }
-    }
-    
+    let mut world = world::World::new(mesh::Texture{id: texture_id}, &world_shader, 694949);    
 
     /*let mut cursor_cube = [[[0usize; 16]; 16]; 16];
     cursor_cube[0][0][0] = 1;
@@ -133,7 +93,7 @@ fn main() {
             frame_count = 0;
             previous_time = current_time;
         }
-        std::thread::sleep(std::time::Duration::from_nanos(11111111));
+        //std::thread::sleep(std::time::Duration::from_nanos(11111111));
 
         player.update(&world);
         /*if let Some((intersect, block, )) = dda(&chunk, &player.delta, &player.direction, vectormath::len(&player.delta)) {

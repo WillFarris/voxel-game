@@ -149,6 +149,41 @@ impl<'a> World<'a> {
             //chunk.destroy_at_chunk_pos(block_index);
             chunk.blocks[block_index.x][block_index.y][block_index.z] = 0;
             self.gen_chunk_mesh(&chunk_index);
+            if block_index.x == 0 {
+                let adjacent_chunk_index = chunk_index - Vector3::new(1, 0, 0);
+                if let Some(Some(_)) = self.chunks.get(&adjacent_chunk_index) {
+                    self.gen_chunk_mesh(&adjacent_chunk_index);
+                }
+            } else if block_index.x == CHUNK_SIZE-1 {
+                let adjacent_chunk_index = chunk_index + Vector3::new(1, 0, 0);
+                if let Some(Some(_)) = self.chunks.get(&adjacent_chunk_index) {
+                    self.gen_chunk_mesh(&adjacent_chunk_index);
+                }
+            }
+
+            if block_index.y == 0 {
+                let adjacent_chunk_index = chunk_index - Vector3::new(0, 1, 0);
+                if let Some(Some(_)) = self.chunks.get(&adjacent_chunk_index) {
+                    self.gen_chunk_mesh(&adjacent_chunk_index);
+                }
+            } else if block_index.y == CHUNK_SIZE-1 {
+                let adjacent_chunk_index = chunk_index + Vector3::new(0, 1, 0);
+                if let Some(Some(_)) = self.chunks.get(&adjacent_chunk_index) {
+                    self.gen_chunk_mesh(&adjacent_chunk_index);
+                }
+            }
+
+            if block_index.z == 0 {
+                let adjacent_chunk_index = chunk_index - Vector3::new(0, 0, 1);
+                if let Some(Some(_)) = self.chunks.get(&adjacent_chunk_index) {
+                    self.gen_chunk_mesh(&adjacent_chunk_index);
+                }
+            } else if block_index.z == CHUNK_SIZE-1 {
+                let adjacent_chunk_index = chunk_index + Vector3::new(0, 0, 1);
+                if let Some(Some(_)) = self.chunks.get(&adjacent_chunk_index) {
+                    self.gen_chunk_mesh(&adjacent_chunk_index);
+                }
+            }
         }
     }
 
@@ -221,7 +256,9 @@ impl<'a> World<'a> {
                             }
                         } else {
                             if let Some(Some(adjacent_chunk)) = self.chunks.get(&(*chunk_index + Vector3::new(1isize, 0, 0))) {
-                                push_face(&position, 0, &mut chunk_vertices, &tex_coords[0]);
+                                if adjacent_chunk.block_at_chunk_pos(&Vector3::new(0, y, z)) == 0 {
+                                    push_face(&position, 0, &mut chunk_vertices, &tex_coords[0]);
+                                }
                             }
                         }
 
@@ -230,8 +267,10 @@ impl<'a> World<'a> {
                                 push_face(&position, 1, &mut chunk_vertices, &tex_coords[1]);
                             }
                         } else {
-                            if let Some(Some(adjacent_chunk)) = self.chunks.get(&(*chunk_index - Vector3::new(-1isize, 0, 0))) {
-                                push_face(&position, 1, &mut chunk_vertices, &tex_coords[1]);
+                            if let Some(Some(adjacent_chunk)) = self.chunks.get(&(*chunk_index - Vector3::new(1isize, 0, 0))) {
+                                if adjacent_chunk.block_at_chunk_pos(&Vector3::new(CHUNK_SIZE-1, y, z)) == 0 {
+                                    push_face(&position, 1, &mut chunk_vertices, &tex_coords[1]);
+                                }
                             }
                         }
 
@@ -241,7 +280,9 @@ impl<'a> World<'a> {
                             }
                         } else {
                             if let Some(Some(adjacent_chunk)) = self.chunks.get(&(*chunk_index + Vector3::new(0, 1isize, 0))) {
-                                push_face(&position, 2, &mut chunk_vertices, &tex_coords[2]);
+                                if adjacent_chunk.block_at_chunk_pos(&Vector3::new(x, 0, z)) == 0 {
+                                    push_face(&position, 2, &mut chunk_vertices, &tex_coords[2]);
+                                }
                             }
                         }
 
@@ -250,8 +291,10 @@ impl<'a> World<'a> {
                                 push_face(&position, 3, &mut chunk_vertices, &tex_coords[3]);
                             }
                         } else {
-                            if let Some(Some(adjacent_chunk)) = self.chunks.get(&(*chunk_index - Vector3::new(0, -1isize, 0))) {
-                                push_face(&position, 3, &mut chunk_vertices, &tex_coords[3]);
+                            if let Some(Some(adjacent_chunk)) = self.chunks.get(&(*chunk_index - Vector3::new(0, 1isize, 0))) {
+                                if adjacent_chunk.block_at_chunk_pos(&Vector3::new(x, CHUNK_SIZE-1, z)) == 0 {
+                                    push_face(&position, 3, &mut chunk_vertices, &tex_coords[3]);
+                                }
                             }
                         }
 
@@ -261,7 +304,9 @@ impl<'a> World<'a> {
                             }
                         } else {
                             if let Some(Some(adjacent_chunk)) = self.chunks.get(&(*chunk_index + Vector3::new(0, 0, 1isize))) {
-                                push_face(&position, 4, &mut chunk_vertices, &tex_coords[4]);
+                                if adjacent_chunk.block_at_chunk_pos(&Vector3::new(x, y, 0)) == 0 {
+                                    push_face(&position, 4, &mut chunk_vertices, &tex_coords[4]);
+                                }
                             }
                         }
 
@@ -270,29 +315,12 @@ impl<'a> World<'a> {
                                 push_face(&position, 5, &mut chunk_vertices, &tex_coords[5]);
                             }
                         } else {
-                            if let Some(Some(adjacent_chunk)) = self.chunks.get(&(*chunk_index - Vector3::new(0, 0, -1isize))) {
-                                push_face(&position, 5, &mut chunk_vertices, &tex_coords[5]);
+                            if let Some(Some(adjacent_chunk)) = self.chunks.get(&(*chunk_index - Vector3::new(0, 0, 1isize))) {
+                                if adjacent_chunk.block_at_chunk_pos(&Vector3::new(x, y, CHUNK_SIZE-1)) == 0 {
+                                    push_face(&position, 5, &mut chunk_vertices, &tex_coords[5]);
+                                }
                             }
                         }
-
-                        /*if x == 0 || current_chunk.blocks[x-1][y][z] == 0 {
-                            push_face(&position, 1, &mut chunk_vertices, &tex_coords[1])
-                        }
-        
-                        if y == 15 || current_chunk.blocks[x][y+1][z] == 0 {
-                            push_face(&position, 2, &mut chunk_vertices, &tex_coords[2]);
-                        }
-                        if y > 0 && current_chunk.blocks[x][y-1][z] == 0 {
-                            push_face(&position, 3, &mut chunk_vertices, &tex_coords[3]);
-                        }
-        
-                        if z < 15 && current_chunk.blocks[x][y][z+1] == 0 {
-                            push_face(&position, 4, &mut chunk_vertices, &tex_coords[4]);
-                        }
-                        if z > 0 && current_chunk.blocks[x][y][z-1] == 0 {
-                            push_face(&position, 5, &mut chunk_vertices, &tex_coords[5]);
-                        }*/
-
                     }
                 }
             }

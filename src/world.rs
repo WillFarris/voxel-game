@@ -41,7 +41,7 @@ impl Chunk {
 }
 
 pub struct World<'a> {
-    pub chunks: HashMap<Vector3<isize>, Option<Chunk>>,
+    pub chunks: HashMap<Vector3<isize>, Chunk>,
     texture: Texture,
     shader: &'a Shader,
 }
@@ -82,8 +82,8 @@ impl<'a> World<'a> {
                     }
                 }
                 //world.chunk_from_block_array(Vector3::new(chunk_x as isize, 0, chunk_z as isize), cur_chunk);
-                let chunk_pos = Vector3::new(chunk_x, 0, chunk_z);
-                chunks.insert(chunk_pos.clone(), Some(Chunk::from_blocks(cur_chunk, 16 * chunk_pos, None, texture.id)));
+                let chunk_index = Vector3::new(chunk_x, 0, chunk_z);
+                chunks.insert(chunk_index, Chunk::from_blocks(cur_chunk, 16 * chunk_index, None, texture.id));
             }
         }
 
@@ -95,9 +95,7 @@ impl<'a> World<'a> {
 
         let mut positions = Vec::new();
         for (position, chunk_option) in &world.chunks {
-            if let Some(chunk) = chunk_option {
-                positions.push(position.clone());
-            }
+            positions.push(position.clone());
         }
 
         for position in positions {
@@ -109,89 +107,68 @@ impl<'a> World<'a> {
 
     pub fn chunk_from_block_array(&mut self, chunk_index: Vector3<isize>, blocks: [[[usize; CHUNK_SIZE]; CHUNK_SIZE]; CHUNK_SIZE]) {
         let new_chunk = Chunk::from_blocks(blocks, 16 * chunk_index, None, self.texture.id);
-        self.chunks.insert(chunk_index, Some(new_chunk));
+        self.chunks.insert(chunk_index, new_chunk);
         self.gen_chunk_mesh(&chunk_index);
     }
 
     pub unsafe fn render(&self, projection_matrix: &Matrix4<f32>, view_matrix: &Matrix4<f32>) {
         for (_position, chunk) in &self.chunks {
-            if let Some(c) = chunk {
-                c.render(projection_matrix, view_matrix, self.shader);
-            }
+            chunk.render(projection_matrix, view_matrix, self.shader);
         }
     }
 
     fn chunk_and_block_index(world_pos: &Vector3<isize>) -> (Vector3<isize>, Vector3<usize>) {
-        let chunk_index = Vector3 {
+        let mut chunk_index = Vector3 {
             x: (world_pos.x as f32 / CHUNK_SIZE as f32).floor() as isize,
             y: (world_pos.y as f32 / CHUNK_SIZE as f32).floor() as isize,
             z: (world_pos.z as f32 / CHUNK_SIZE as f32).floor() as isize,
         };
-        //TODO: Make this work with negative numbers
-        //Currently: e.g. -19 as usize % 16 is not correct
-        let mut block_index_signed = Vector3 {
-            x: (world_pos.x % CHUNK_SIZE as isize),
-            y: (world_pos.y % CHUNK_SIZE as isize),
-            z: (world_pos.z % CHUNK_SIZE as isize),
-        };
-        if world_pos.x < 0 {
-            block_index_signed.x = 15 + block_index_signed.x;
-        }
-        if world_pos.y < 0 {
-            block_index_signed.y = 15 + block_index_signed.y;
-        }
-        if world_pos.z < 0 {
-            block_index_signed.z = 15 + block_index_signed.z;
-        }
-        println!("world pos: {:?}\nblock_index: {:?}", world_pos, block_index_signed);
-
         let block_index = Vector3 {
-            x: block_index_signed.x as usize,
-            y: block_index_signed.y as usize,
-            z: block_index_signed.z as usize,
+            x: (world_pos.x.rem_euclid(CHUNK_SIZE as isize)) as usize,
+            y: (world_pos.y.rem_euclid(CHUNK_SIZE as isize)) as usize,
+            z: (world_pos.z.rem_euclid(CHUNK_SIZE as isize)) as usize,
         };
-        
         (chunk_index, block_index)
     }
 
     pub fn destroy_at_global_pos(&mut self, world_pos: Vector3<isize>) {
         let (chunk_index, block_index) = World::chunk_and_block_index(&world_pos);
-        if let Some(Some(chunk)) = self.chunks.get_mut(&chunk_index) {
+        if let Some(chunk) = self.chunks.get_mut(&chunk_index) {
             //chunk.destroy_at_chunk_pos(block_index);
             chunk.blocks[block_index.x][block_index.y][block_index.z] = 0;
             self.gen_chunk_mesh(&chunk_index);
             if block_index.x == 0 {
                 let adjacent_chunk_index = chunk_index - Vector3::new(1, 0, 0);
-                if let Some(Some(_)) = self.chunks.get(&adjacent_chunk_index) {
+                if let Some(_) = self.chunks.get(&adjacent_chunk_index) {
                     self.gen_chunk_mesh(&adjacent_chunk_index);
                 }
             } else if block_index.x == CHUNK_SIZE-1 {
                 let adjacent_chunk_index = chunk_index + Vector3::new(1, 0, 0);
-                if let Some(Some(_)) = self.chunks.get(&adjacent_chunk_index) {
+                if let Some(_) = self.chunks.get(&adjacent_chunk_index) {
                     self.gen_chunk_mesh(&adjacent_chunk_index);
                 }
             }
 
             if block_index.y == 0 {
                 let adjacent_chunk_index = chunk_index - Vector3::new(0, 1, 0);
-                if let Some(Some(_)) = self.chunks.get(&adjacent_chunk_index) {
+                if let Some(_) = self.chunks.get(&adjacent_chunk_index) {
                     self.gen_chunk_mesh(&adjacent_chunk_index);
                 }
             } else if block_index.y == CHUNK_SIZE-1 {
                 let adjacent_chunk_index = chunk_index + Vector3::new(0, 1, 0);
-                if let Some(Some(_)) = self.chunks.get(&adjacent_chunk_index) {
+                if let Some(_) = self.chunks.get(&adjacent_chunk_index) {
                     self.gen_chunk_mesh(&adjacent_chunk_index);
                 }
             }
 
             if block_index.z == 0 {
                 let adjacent_chunk_index = chunk_index - Vector3::new(0, 0, 1);
-                if let Some(Some(_)) = self.chunks.get(&adjacent_chunk_index) {
+                if let Some(_) = self.chunks.get(&adjacent_chunk_index) {
                     self.gen_chunk_mesh(&adjacent_chunk_index);
                 }
             } else if block_index.z == CHUNK_SIZE-1 {
                 let adjacent_chunk_index = chunk_index + Vector3::new(0, 0, 1);
-                if let Some(Some(_)) = self.chunks.get(&adjacent_chunk_index) {
+                if let Some(_) = self.chunks.get(&adjacent_chunk_index) {
                     self.gen_chunk_mesh(&adjacent_chunk_index);
                 }
             }
@@ -200,7 +177,7 @@ impl<'a> World<'a> {
 
     pub fn place_at_global_pos(&mut self, world_pos: Vector3<isize>, block_id: usize) {
         let (chunk_index, block_index) = World::chunk_and_block_index(&world_pos);
-        if let Some(Some(chunk)) = self.chunks.get_mut(&chunk_index) {
+        if let Some(chunk) = self.chunks.get_mut(&chunk_index) {
             println!("TODO: Place block");
             //chunk.place_at_chunk_pos(block_index, block_id);
         }
@@ -208,7 +185,7 @@ impl<'a> World<'a> {
 
     pub fn block_at_global_pos(&self, world_pos: Vector3<isize>) -> usize {
         let (chunk_index, block_index) = World::chunk_and_block_index(&world_pos);
-        if let Some(chunk) = &self.chunks[&chunk_index] {
+        if let Some(chunk) = self.chunks.get(&chunk_index) {
             return chunk.block_at_chunk_pos(&block_index);
         }
         0
@@ -221,7 +198,7 @@ impl<'a> World<'a> {
     pub fn gen_chunk_mesh(&mut self, chunk_index: &Vector3<isize>) {
         let mut chunk_vertices = Vec::new();
     
-        if let Some(Some(current_chunk)) = self.chunks.get(chunk_index) {
+        if let Some(current_chunk) = self.chunks.get(chunk_index) {
             for x in 0..CHUNK_SIZE {
                 for y in 0..CHUNK_SIZE {
                     for z in 0..CHUNK_SIZE {
@@ -266,7 +243,7 @@ impl<'a> World<'a> {
                                 push_face(&position, 0, &mut chunk_vertices, &tex_coords[0]);
                             }
                         } else {
-                            if let Some(Some(adjacent_chunk)) = self.chunks.get(&(*chunk_index + Vector3::new(1isize, 0, 0))) {
+                            if let Some(adjacent_chunk) = self.chunks.get(&(*chunk_index + Vector3::new(1isize, 0, 0))) {
                                 if adjacent_chunk.block_at_chunk_pos(&Vector3::new(0, y, z)) == 0 {
                                     push_face(&position, 0, &mut chunk_vertices, &tex_coords[0]);
                                 }
@@ -278,7 +255,7 @@ impl<'a> World<'a> {
                                 push_face(&position, 1, &mut chunk_vertices, &tex_coords[1]);
                             }
                         } else {
-                            if let Some(Some(adjacent_chunk)) = self.chunks.get(&(*chunk_index - Vector3::new(1isize, 0, 0))) {
+                            if let Some(adjacent_chunk) = self.chunks.get(&(*chunk_index - Vector3::new(1isize, 0, 0))) {
                                 if adjacent_chunk.block_at_chunk_pos(&Vector3::new(CHUNK_SIZE-1, y, z)) == 0 {
                                     push_face(&position, 1, &mut chunk_vertices, &tex_coords[1]);
                                 }
@@ -290,7 +267,7 @@ impl<'a> World<'a> {
                                 push_face(&position, 2, &mut chunk_vertices, &tex_coords[2]);
                             }
                         } else {
-                            if let Some(Some(adjacent_chunk)) = self.chunks.get(&(*chunk_index + Vector3::new(0, 1isize, 0))) {
+                            if let Some(adjacent_chunk) = self.chunks.get(&(*chunk_index + Vector3::new(0, 1isize, 0))) {
                                 if adjacent_chunk.block_at_chunk_pos(&Vector3::new(x, 0, z)) == 0 {
                                     push_face(&position, 2, &mut chunk_vertices, &tex_coords[2]);
                                 }
@@ -302,7 +279,7 @@ impl<'a> World<'a> {
                                 push_face(&position, 3, &mut chunk_vertices, &tex_coords[3]);
                             }
                         } else {
-                            if let Some(Some(adjacent_chunk)) = self.chunks.get(&(*chunk_index - Vector3::new(0, 1isize, 0))) {
+                            if let Some(adjacent_chunk) = self.chunks.get(&(*chunk_index - Vector3::new(0, 1isize, 0))) {
                                 if adjacent_chunk.block_at_chunk_pos(&Vector3::new(x, CHUNK_SIZE-1, z)) == 0 {
                                     push_face(&position, 3, &mut chunk_vertices, &tex_coords[3]);
                                 }
@@ -314,7 +291,7 @@ impl<'a> World<'a> {
                                 push_face(&position, 4, &mut chunk_vertices, &tex_coords[4]);
                             }
                         } else {
-                            if let Some(Some(adjacent_chunk)) = self.chunks.get(&(*chunk_index + Vector3::new(0, 0, 1isize))) {
+                            if let Some(adjacent_chunk) = self.chunks.get(&(*chunk_index + Vector3::new(0, 0, 1isize))) {
                                 if adjacent_chunk.block_at_chunk_pos(&Vector3::new(x, y, 0)) == 0 {
                                     push_face(&position, 4, &mut chunk_vertices, &tex_coords[4]);
                                 }
@@ -326,7 +303,7 @@ impl<'a> World<'a> {
                                 push_face(&position, 5, &mut chunk_vertices, &tex_coords[5]);
                             }
                         } else {
-                            if let Some(Some(adjacent_chunk)) = self.chunks.get(&(*chunk_index - Vector3::new(0, 0, 1isize))) {
+                            if let Some(adjacent_chunk) = self.chunks.get(&(*chunk_index - Vector3::new(0, 0, 1isize))) {
                                 if adjacent_chunk.block_at_chunk_pos(&Vector3::new(x, y, CHUNK_SIZE-1)) == 0 {
                                     push_face(&position, 5, &mut chunk_vertices, &tex_coords[5]);
                                 }
@@ -339,7 +316,7 @@ impl<'a> World<'a> {
             return;
         }
 
-        if let Some(Some(chunk)) = self.chunks.get_mut(chunk_index) {
+        if let Some(chunk) = self.chunks.get_mut(chunk_index) {
             let chunk_mesh = crate::mesh::Mesh::new(chunk_vertices, &self.texture, &self.shader);
             chunk.mesh = Some(chunk_mesh);
         }

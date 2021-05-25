@@ -44,33 +44,33 @@ impl Player {
 
         for vert in collision_box {
             let collision_check_feet = Vector3::new(
-                (self.position.x + delta.x + vert.x) as isize,
-                (self.position.y + delta.y + vert.y) as isize,
-                (self.position.z + delta.z + vert.z) as isize,
+                (self.position.x + delta.x + vert.x).floor() as isize,
+                (self.position.y + delta.y + vert.y).floor() as isize,
+                (self.position.z + delta.z + vert.z).floor() as isize,
             );
 
             let collision_check_head = Vector3::new(
-                (self.position.x + delta.x + vert.x) as isize,
-                (self.position.y + delta.y + vert.y + 1.8) as isize,
-                (self.position.z + delta.z + vert.z) as isize,
+                (self.position.x + delta.x + vert.x).floor() as isize,
+                (self.position.y + delta.y + vert.y + 1.8).floor() as isize,
+                (self.position.z + delta.z + vert.z).floor() as isize,
             );
             
             if world.collision_at_world_pos(collision_check_feet) ||
                world.collision_at_world_pos(collision_check_head) {
                 if let Some((_global_intersect_coords, global_block_index)) = dda(&world, &(self.position + delta), &vert, len(&(vert))) {
 
-                    if (self.position.x + delta.x) as isize == global_block_index.x {
+                    if (self.position.x + delta.x).floor() as isize == global_block_index.x {
                         delta.z = 0.0;
                     }
-                    if (self.position.z + delta.z) as isize == global_block_index.z {
+                    if (self.position.z + delta.z).floor() as isize == global_block_index.z {
                         delta.x = 0.0;
                     }
                 }
                 if let Some((_global_intersect_coords, global_block_index)) = dda(&world, &(self.position + delta + Y_VECTOR), &vert, len(&(vert))) {
-                    if (self.position.x + delta.x) as isize == global_block_index.x {
+                    if (self.position.x + delta.x).floor() as isize == global_block_index.x {
                         delta.z = 0.0;
                     }
-                    if (self.position.z + delta.z) as isize == global_block_index.z {
+                    if (self.position.z + delta.z).floor() as isize == global_block_index.z {
                         delta.x = 0.0;
                     }
                 }
@@ -78,9 +78,9 @@ impl Player {
         }
 
         let grounded_check = Vector3::new(
-            self.position.x as isize,
-            (self.position.y-0.1) as isize,
-            self.position.z as isize
+            self.position.x.floor() as isize,
+            (self.position.y-0.1).floor() as isize,
+            self.position.z.floor() as isize
         );
         if world.collision_at_world_pos(grounded_check) {
             self.grounded = true;

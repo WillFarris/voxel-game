@@ -132,9 +132,9 @@ pub fn dda(world: &world::World, start: &Vector3<f32>, dir: &Vector3<f32>, max_d
     }
 
     let mut map_check = Vector3 {
-        x: start.x as isize,
-        y: start.y as isize,
-        z: start.z as isize,
+        x: start.x.floor() as isize,
+        y: start.y.floor() as isize,
+        z: start.z.floor() as isize,
     };
     let mut ray_length_1d = Vector3 {x: 0.0, y: 0.0, z: 0.0 };
     let mut step = Vector3 {x: 0, y: 0, z: 0};

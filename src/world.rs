@@ -47,10 +47,10 @@ pub struct World<'a> {
 }
 
 impl<'a> World<'a> {
-    pub fn new(texture: Texture, shader: &'a Shader, seed: usize) -> Self {
+    pub fn new(texture: Texture, shader: &'a Shader, seed: u32) -> Self {
         let mut chunks = HashMap::new();
         let perlin = Perlin::new();
-        perlin.set_seed(rand::random());
+        perlin.set_seed(seed);
 
         let noise_x_offset = rand::random::<f64>();
         let noise_z_offset = rand::random::<f64>();
@@ -58,32 +58,35 @@ impl<'a> World<'a> {
 
         let chunk_radius: isize = 5;
         for chunk_x in -chunk_radius..chunk_radius {
-            for chunk_z in -chunk_radius..chunk_radius {
-                let mut cur_chunk: [[[usize; CHUNK_SIZE]; CHUNK_SIZE]; CHUNK_SIZE] = [[[0; CHUNK_SIZE]; CHUNK_SIZE]; CHUNK_SIZE];
-                for block_x in 0..CHUNK_SIZE {
-                    for block_y in 0..CHUNK_SIZE {
-                        for block_z in 0..CHUNK_SIZE {
-                            let global_x = noise_scale * (block_x as isize + (chunk_x * CHUNK_SIZE as isize)) as f64;
-                            let global_z = noise_scale * (block_z as isize + (chunk_z * CHUNK_SIZE as isize)) as f64;
-                            let max_y = {
-                                let noise_val = (10.0 * (perlin.get([global_x + noise_x_offset, global_z + noise_z_offset])+1.0)/2.0 + 1.0) as usize;
-                                noise_val
-                            };
-                            if block_y < max_y {
-                                if block_y == max_y-1 {
-                                    cur_chunk[block_x][block_y][block_z] = 2;
-                                } else if block_y < max_y/2 {
-                                    cur_chunk[block_x][block_y][block_z] = 1;
-                                } else {
-                                    cur_chunk[block_x][block_y][block_z] = 3;
+            for chunk_y in 0..(2*chunk_radius) {
+                for chunk_z in -chunk_radius..chunk_radius {
+                    let mut cur_chunk: [[[usize; CHUNK_SIZE]; CHUNK_SIZE]; CHUNK_SIZE] = [[[0; CHUNK_SIZE]; CHUNK_SIZE]; CHUNK_SIZE];
+                    for block_x in 0..CHUNK_SIZE {
+                        for block_y in 0..CHUNK_SIZE {
+                            for block_z in 0..CHUNK_SIZE {
+                                let global_x = (block_x as isize + (chunk_x * CHUNK_SIZE as isize)) as f64;
+                                let global_y = (block_y as isize + (chunk_y * CHUNK_SIZE as isize)) as f64;
+                                let global_z = (block_z as isize + (chunk_z * CHUNK_SIZE as isize)) as f64;
+                                let surface_y = 
+                                      5.0 * perlin.get([2.0 * noise_scale * global_x + noise_x_offset, 2.0 * noise_scale * global_z + noise_z_offset])
+                                    + 10.0 * perlin.get([noise_scale * global_x + 0.5 * noise_z_offset, noise_scale * global_z + 0.5 * noise_x_offset])
+                                    + 40.0;
+                                if global_y < surface_y {
+                                    if global_y == surface_y.floor() {
+                                        cur_chunk[block_x][block_y][block_z] = 2;
+                                    } else if global_y < (surface_y/2.0).floor() {
+                                        cur_chunk[block_x][block_y][block_z] = 1;
+                                    } else {
+                                        cur_chunk[block_x][block_y][block_z] = 3;
+                                    }
                                 }
                             }
                         }
                     }
+                    //world.chunk_from_block_array(Vector3::new(chunk_x as isize, 0, chunk_z as isize), cur_chunk);
+                    let chunk_index = Vector3::new(chunk_x, chunk_y, chunk_z);
+                    chunks.insert(chunk_index, Chunk::from_blocks(cur_chunk, 16 * chunk_index, None, texture.id));
                 }
-                //world.chunk_from_block_array(Vector3::new(chunk_x as isize, 0, chunk_z as isize), cur_chunk);
-                let chunk_index = Vector3::new(chunk_x, 0, chunk_z);
-                chunks.insert(chunk_index, Chunk::from_blocks(cur_chunk, 16 * chunk_index, None, texture.id));
             }
         }
 

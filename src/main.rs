@@ -69,7 +69,7 @@ fn main() {
     println!("Seed: {}", seed);
     let mut world = world::World::new(mesh::Texture{id: texture_id}, &world_shader, seed);    
 
-    let mut player = player::Player::new(Vector3::new(5.0, 10.5, 4.5), Vector3::new(1.0, 0.0, 1.0));
+    let mut player = player::Player::new(Vector3::new(5.0, 66.0, 4.5), Vector3::new(1.0, 0.0, 1.0));
 
     unsafe {
         gl::Enable(gl::DEPTH_TEST);

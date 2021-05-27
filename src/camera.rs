@@ -39,9 +39,9 @@ impl Camera {
     }
 
     fn calculate_normals(&mut self) {
-        self.forward = normalize_inplace(self.forward);
-        self.right = normalize(&cross(&Y_VECTOR, &self.forward));
-        self.up = normalize(&cross(&self.forward, &self.right));
+        normalize_inplace(&mut self.forward);// = normalize_inplace(self.forward);
+        self.right = normalize(&cross(Y_VECTOR, self.forward));
+        self.up = normalize(& cross(self.forward, self.right));
     }
 
 

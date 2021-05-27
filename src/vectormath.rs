@@ -94,12 +94,11 @@ pub fn normalize(vec: &Vector3<f32>) -> Vector3<f32> {
     Vector3::new(vec.x / len, vec.y / len, vec.z / len)
 }
 
-pub fn normalize_inplace(vec: Vector3<f32>) -> Vector3<f32> {
-    let len = len(&vec);
-    Vector3::new(vec.x / len, vec.y / len, vec.z / len)
+pub fn normalize_inplace(vec: &mut Vector3<f32>) {
+    *vec /= len(vec);
 }
 
-pub fn cross(a: &Vector3<f32>, b: &Vector3<f32>) -> Vector3<f32> {
+pub fn cross(a: Vector3<f32>, b: Vector3<f32>) -> Vector3<f32> {
     Vector3::new(
         a.y * b.z - a.z * b.y,
         a.z * b.x - a.x * b.z,
@@ -107,8 +106,7 @@ pub fn cross(a: &Vector3<f32>, b: &Vector3<f32>) -> Vector3<f32> {
     )
 }
 
-#[allow(unused)]
-pub fn dot(u: &Vector3<f32>, v: &Vector3<f32>) -> f32 {
+pub fn dot(u: Vector3<f32>, v: Vector3<f32>) -> f32 {
     u.x * v.x + u.y * v.y + u.z * v.z
 }
 

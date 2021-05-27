@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use cgmath::{Matrix4, Vector3};
+use cgmath::{Matrix4, Vector3, Vector2};
 
 use crate::{mesh::*, meshgen::{self, *}, shader::Shader};
 
@@ -42,6 +42,9 @@ impl Chunk {
 
 pub struct World<'a> {
     pub chunks: HashMap<Vector3<isize>, Chunk>,
+    seed: u32,
+    noise_offset: Vector2<f64>,
+    perlin: Perlin,
     texture: Texture,
     shader: &'a Shader,
 }
@@ -50,51 +53,29 @@ impl<'a> World<'a> {
     pub fn new(texture: Texture, shader: &'a Shader, seed: u32) -> Self {
         let mut chunks = HashMap::new();
         let perlin = Perlin::new();
+        let noise_offset = Vector2::new(
+            rand::random::<f64>(),
+            rand::random::<f64>(),
+        );
         perlin.set_seed(seed);
 
-        let noise_x_offset = rand::random::<f64>();
-        let noise_z_offset = rand::random::<f64>();
-        let noise_scale = 0.03;
-
+        let mut world = Self {
+            chunks,
+            seed,
+            noise_offset,
+            perlin,
+            texture,
+            shader,
+        };
+        
         let chunk_radius: isize = 5;
         for chunk_x in -chunk_radius..chunk_radius {
             for chunk_y in 0..(2*chunk_radius) {
                 for chunk_z in -chunk_radius..chunk_radius {
-                    let mut cur_chunk: [[[usize; CHUNK_SIZE]; CHUNK_SIZE]; CHUNK_SIZE] = [[[0; CHUNK_SIZE]; CHUNK_SIZE]; CHUNK_SIZE];
-                    for block_x in 0..CHUNK_SIZE {
-                        for block_y in 0..CHUNK_SIZE {
-                            for block_z in 0..CHUNK_SIZE {
-                                let global_x = (block_x as isize + (chunk_x * CHUNK_SIZE as isize)) as f64;
-                                let global_y = (block_y as isize + (chunk_y * CHUNK_SIZE as isize)) as f64;
-                                let global_z = (block_z as isize + (chunk_z * CHUNK_SIZE as isize)) as f64;
-                                let surface_y = 
-                                      5.0 * perlin.get([2.0 * noise_scale * global_x + noise_x_offset, 2.0 * noise_scale * global_z + noise_z_offset])
-                                    + 10.0 * perlin.get([noise_scale * global_x + 0.5 * noise_z_offset, noise_scale * global_z + 0.5 * noise_x_offset])
-                                    + 40.0;
-                                if global_y < surface_y {
-                                    if global_y == surface_y.floor() {
-                                        cur_chunk[block_x][block_y][block_z] = 2;
-                                    } else if global_y < (surface_y/2.0).floor() {
-                                        cur_chunk[block_x][block_y][block_z] = 1;
-                                    } else {
-                                        cur_chunk[block_x][block_y][block_z] = 3;
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    //world.chunk_from_block_array(Vector3::new(chunk_x as isize, 0, chunk_z as isize), cur_chunk);
-                    let chunk_index = Vector3::new(chunk_x, chunk_y, chunk_z);
-                    chunks.insert(chunk_index, Chunk::from_blocks(cur_chunk, 16 * chunk_index, None, texture.id));
+                    world.gen_chunk(chunk_x, chunk_y, chunk_z);
                 }
             }
         }
-
-        let mut world = Self {
-            chunks,
-            texture,
-            shader,
-        };
 
         let mut positions = Vec::new();
         for (position, chunk_option) in &world.chunks {
@@ -108,10 +89,48 @@ impl<'a> World<'a> {
         world
     }
 
+    fn gen_chunk(&mut self, chunk_x: isize, chunk_y: isize, chunk_z: isize) {
+        let noise_scale = 0.03;
+        let mut cur_chunk: [[[usize; CHUNK_SIZE]; CHUNK_SIZE]; CHUNK_SIZE] = [[[0; CHUNK_SIZE]; CHUNK_SIZE]; CHUNK_SIZE];
+        for block_x in 0..CHUNK_SIZE {
+            for block_y in 0..CHUNK_SIZE {
+                for block_z in 0..CHUNK_SIZE {
+                    let global_x = (block_x as isize + (chunk_x * CHUNK_SIZE as isize)) as f64;
+                    let global_y = (block_y as isize + (chunk_y * CHUNK_SIZE as isize)) as f64;
+                    let global_z = (block_z as isize + (chunk_z * CHUNK_SIZE as isize)) as f64;
+                    let surface_y = 
+                            5.0 * self.perlin.get([2.0 * noise_scale * global_x + self.noise_offset.x, 2.0 * noise_scale * global_z + self.noise_offset.y])
+                        + 10.0 * self.perlin.get([noise_scale * global_x + 0.5 * self.noise_offset.x, noise_scale * global_z + 0.5 * self.noise_offset.y])
+                        + 40.0;
+                    if global_y < surface_y {
+                        if global_y == surface_y.floor() {
+                            cur_chunk[block_x][block_y][block_z] = 2;
+                        } else if global_y < (surface_y/2.0).floor() {
+                            cur_chunk[block_x][block_y][block_z] = 1;
+                        } else {
+                            cur_chunk[block_x][block_y][block_z] = 3;
+                        }
+                    }
+                }
+            }
+        }
+        let chunk_index = Vector3::new(chunk_x, chunk_y, chunk_z);
+        self.chunks.insert(chunk_index, Chunk::from_blocks(cur_chunk, 16 * chunk_index, None, self.texture.id));
+                
+    }
+
     pub fn chunk_from_block_array(&mut self, chunk_index: Vector3<isize>, blocks: [[[usize; CHUNK_SIZE]; CHUNK_SIZE]; CHUNK_SIZE]) {
         let new_chunk = Chunk::from_blocks(blocks, 16 * chunk_index, None, self.texture.id);
         self.chunks.insert(chunk_index, new_chunk);
         self.gen_chunk_mesh(&chunk_index);
+    }
+
+    pub fn update_chunks(player_position_global: Vector3<f32>) {
+        let player_position_global_index = Vector3::new(
+            player_position_global.x.floor() as isize,
+            player_position_global.y.floor() as isize,
+            player_position_global.z.floor() as isize,
+        );
     }
 
     pub unsafe fn render(&self, projection_matrix: &Matrix4<f32>, view_matrix: &Matrix4<f32>) {

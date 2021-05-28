@@ -89,7 +89,7 @@ fn main() {
         }
         //std::thread::sleep(std::time::Duration::from_nanos(11111111));
 
-        //world.update_loaded_chunks(player.position);
+        //world.update_chunks(player.position);
         player.update(&world);
         /*if let Some((intersect, block, )) = dda(&chunk, &player.delta, &player.direction, vectormath::len(&player.delta)) {
             cursor_position = intersect;

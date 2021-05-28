@@ -72,7 +72,14 @@ impl<'a> World<'a> {
         for chunk_x in -chunk_radius..chunk_radius {
             for chunk_y in 0..(2*chunk_radius) {
                 for chunk_z in -chunk_radius..chunk_radius {
-                    world.gen_chunk(chunk_x, chunk_y, chunk_z);
+                    let chunk_index = Vector3::new(chunk_x, chunk_y, chunk_z);
+                    let chunk_data: [[[usize; CHUNK_SIZE]; CHUNK_SIZE]; CHUNK_SIZE] = [[[0; CHUNK_SIZE]; CHUNK_SIZE]; CHUNK_SIZE];
+                    let mut cur_chunk = Chunk::from_blocks(chunk_data, 16 * chunk_index, None, world.texture.id);
+                    
+                    world.gen_terrain(&chunk_index, &mut cur_chunk);
+                    //world.gen_caves(&chunk_index, &mut cur_chunk);
+
+                    world.chunks.insert(chunk_index, cur_chunk);
                 }
             }
         }
@@ -89,34 +96,34 @@ impl<'a> World<'a> {
         world
     }
 
-    fn gen_chunk(&mut self, chunk_x: isize, chunk_y: isize, chunk_z: isize) {
+    fn gen_terrain(&mut self, chunk_index: &Vector3<isize>, chunk: &mut Chunk) {
         let noise_scale = 0.03;
-        let mut cur_chunk: [[[usize; CHUNK_SIZE]; CHUNK_SIZE]; CHUNK_SIZE] = [[[0; CHUNK_SIZE]; CHUNK_SIZE]; CHUNK_SIZE];
         for block_x in 0..CHUNK_SIZE {
             for block_y in 0..CHUNK_SIZE {
                 for block_z in 0..CHUNK_SIZE {
-                    let global_x = (block_x as isize + (chunk_x * CHUNK_SIZE as isize)) as f64;
-                    let global_y = (block_y as isize + (chunk_y * CHUNK_SIZE as isize)) as f64;
-                    let global_z = (block_z as isize + (chunk_z * CHUNK_SIZE as isize)) as f64;
+                    let global_x = (block_x as isize + (chunk_index.x * CHUNK_SIZE as isize)) as f64;
+                    let global_y = (block_y as isize + (chunk_index.y * CHUNK_SIZE as isize)) as f64;
+                    let global_z = (block_z as isize + (chunk_index.z * CHUNK_SIZE as isize)) as f64;
                     let surface_y = 
                             5.0 * self.perlin.get([2.0 * noise_scale * global_x + self.noise_offset.x, 2.0 * noise_scale * global_z + self.noise_offset.y])
                         + 10.0 * self.perlin.get([noise_scale * global_x + 0.5 * self.noise_offset.x, noise_scale * global_z + 0.5 * self.noise_offset.y])
                         + 40.0;
                     if global_y < surface_y {
                         if global_y == surface_y.floor() {
-                            cur_chunk[block_x][block_y][block_z] = 2;
+                            chunk.blocks[block_x][block_y][block_z] = 2;
                         } else if global_y < (surface_y/2.0).floor() {
-                            cur_chunk[block_x][block_y][block_z] = 1;
+                            chunk.blocks[block_x][block_y][block_z] = 1;
                         } else {
-                            cur_chunk[block_x][block_y][block_z] = 3;
+                            chunk.blocks[block_x][block_y][block_z] = 3;
                         }
                     }
                 }
             }
         }
-        let chunk_index = Vector3::new(chunk_x, chunk_y, chunk_z);
-        self.chunks.insert(chunk_index, Chunk::from_blocks(cur_chunk, 16 * chunk_index, None, self.texture.id));
-                
+    }
+
+    fn gen_caves(&mut self, chunk_index: &Vector3<isize>, chunk: &mut Chunk) {
+
     }
 
     pub fn chunk_from_block_array(&mut self, chunk_index: Vector3<isize>, blocks: [[[usize; CHUNK_SIZE]; CHUNK_SIZE]; CHUNK_SIZE]) {
@@ -125,13 +132,38 @@ impl<'a> World<'a> {
         self.gen_chunk_mesh(&chunk_index);
     }
 
-    pub fn update_chunks(player_position_global: Vector3<f32>) {
-        let player_position_global_index = Vector3::new(
-            player_position_global.x.floor() as isize,
-            player_position_global.y.floor() as isize,
-            player_position_global.z.floor() as isize,
+    /*pub fn update_chunks(&mut self, player_position_global: Vector3<f32>) {
+        let render_distance = 2;
+        let player_block_index = Vector3::new(
+            player_position_global.x.floor() as isize / 16,
+            player_position_global.y.floor() as isize / 16,
+            player_position_global.z.floor() as isize / 16,
         );
-    }
+
+        for x in (player_block_index.x - render_distance)..=(player_block_index.x+render_distance) {
+            for y in (player_block_index.x - render_distance)..=(player_block_index.x+render_distance) {
+                for z in (player_block_index.x - render_distance)..=(player_block_index.x+render_distance) {
+                    if let Some(_) = self.chunks.get(&Vector3::new(x, y, z)) {
+                        continue;
+                    } else {
+                        self.gen_chunk(x, y, z);
+                        self.gen_chunk_mesh(&Vector3::new(x, y, z));
+                    }
+                }
+            }
+        }
+
+        self.chunks.retain(|index, chunk| {
+               index.x >= (player_block_index.x - render_distance) &&
+               index.x <= (player_block_index.x + render_distance) &&
+               index.y >= (player_block_index.y - render_distance) &&
+               index.y <= (player_block_index.y + render_distance) && 
+               index.z >= (player_block_index.z - render_distance) &&
+               index.z <= (player_block_index.z + render_distance)
+        });
+
+        
+    }*/
 
     pub unsafe fn render(&self, projection_matrix: &Matrix4<f32>, view_matrix: &Matrix4<f32>) {
         for (_position, chunk) in &self.chunks {

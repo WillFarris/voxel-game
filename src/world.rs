@@ -77,7 +77,7 @@ impl<'a> World<'a> {
                     let mut cur_chunk = Chunk::from_blocks(chunk_data, 16 * chunk_index, None, world.texture.id);
                     
                     world.gen_terrain(&chunk_index, &mut cur_chunk);
-                    //world.gen_caves(&chunk_index, &mut cur_chunk);
+                    world.gen_caves(&chunk_index, &mut cur_chunk);
 
                     world.chunks.insert(chunk_index, cur_chunk);
                 }
@@ -98,6 +98,9 @@ impl<'a> World<'a> {
 
     fn gen_terrain(&mut self, chunk_index: &Vector3<isize>, chunk: &mut Chunk) {
         let noise_scale = 0.03;
+
+        //println!("Generating terrain...");
+
         for block_x in 0..CHUNK_SIZE {
             for block_y in 0..CHUNK_SIZE {
                 for block_z in 0..CHUNK_SIZE {
@@ -123,7 +126,24 @@ impl<'a> World<'a> {
     }
 
     fn gen_caves(&mut self, chunk_index: &Vector3<isize>, chunk: &mut Chunk) {
+        let noise_scale = 0.1;
+        let cutoff = 0.6;
 
+        //println!("Digging caves...");
+
+        for block_x in 0..CHUNK_SIZE {
+            for block_y in 0..CHUNK_SIZE {
+                for block_z in 0..CHUNK_SIZE {
+                    let global_x = (block_x as isize + (chunk_index.x * CHUNK_SIZE as isize)) as f64;
+                    let global_y = (block_y as isize + (chunk_index.y * CHUNK_SIZE as isize)) as f64;
+                    let global_z = (block_z as isize + (chunk_index.z * CHUNK_SIZE as isize)) as f64;
+                    let noise = self.perlin.get([noise_scale * global_x, noise_scale * global_y, noise_scale * global_z]);
+                    if noise > cutoff {
+                        chunk.blocks[block_x][block_y][block_z] = 0;
+                    }
+                }
+            }
+        }
     }
 
     pub fn chunk_from_block_array(&mut self, chunk_index: Vector3<isize>, blocks: [[[usize; CHUNK_SIZE]; CHUNK_SIZE]; CHUNK_SIZE]) {
@@ -172,7 +192,7 @@ impl<'a> World<'a> {
     }
 
     fn chunk_and_block_index(world_pos: &Vector3<isize>) -> (Vector3<isize>, Vector3<usize>) {
-        let mut chunk_index = Vector3 {
+        let chunk_index = Vector3 {
             x: (world_pos.x as f32 / CHUNK_SIZE as f32).floor() as isize,
             y: (world_pos.y as f32 / CHUNK_SIZE as f32).floor() as isize,
             z: (world_pos.z as f32 / CHUNK_SIZE as f32).floor() as isize,

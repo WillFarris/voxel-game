@@ -3,7 +3,7 @@ use std::fs::File;
 use std::path::Path;
 use std::{ffi::CString, ptr};
 
-use cgmath::{Matrix, Matrix4};
+use cgmath::{Array, Matrix, Matrix4, Vector3};
 use gl::types::*;
 
 pub struct Shader {
@@ -82,8 +82,16 @@ impl Shader {
         shader_program
     }
 
-    pub unsafe fn set_mat4(&self, name: &CStr, mat: &Matrix4<f32>) {
-        gl::UniformMatrix4fv(gl::GetUniformLocation(self.id, name.as_ptr()), 1, gl::FALSE, mat.as_ptr());
+    pub fn set_mat4(&self, name: &CStr, mat: &Matrix4<f32>) {
+        unsafe {
+            gl::UniformMatrix4fv(gl::GetUniformLocation(self.id, name.as_ptr()), 1, gl::FALSE, mat.as_ptr());
+        }
+    }
+
+    pub fn set_vec3(&self, name: &CStr, vec: &Vector3<f32>) {
+        unsafe {
+            gl::Uniform3fv(gl::GetUniformLocation(self.id, name.as_ptr()), 1, vec.as_ptr());
+        }
     }
 
     pub fn use_program(&self) {

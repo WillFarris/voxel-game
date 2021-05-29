@@ -24,8 +24,6 @@ extern crate image;
 extern crate glfw;
 extern crate gl;
 
-const _SCENE_LIGHT: [f32; 3] = [-1.0, 0.701, -1.0];
-
 const WIDTH: u32 = 1000;
 const HEIGHT: u32 = 650;
 
@@ -71,6 +69,8 @@ fn main() {
 
     let mut player = player::Player::new(Vector3::new(5.0, 66.0, 4.5), Vector3::new(1.0, 0.0, 1.0));
 
+    let mut sunlight_direction: Vector3<f32> = Vector3 { x: -0.701, y: 0.701, z: -0.701 };
+    
     unsafe {
         gl::Enable(gl::DEPTH_TEST);
         gl::Enable(gl::CULL_FACE);
@@ -90,6 +90,8 @@ fn main() {
             frame_count = 0;
             previous_time = current_time;
         }
+        sunlight_direction.x = glfw.get_time().sin() as f32;
+        sunlight_direction.z = glfw.get_time().cos() as f32;
         //std::thread::sleep(std::time::Duration::from_nanos(11111111));
 
         //world.update_chunks(player.position);
@@ -112,6 +114,7 @@ fn main() {
 
             world_shader.set_mat4(c_str!("perspective_matrix"), &projection);
             world_shader.set_mat4(c_str!("view_matrix"), &view);
+            world_shader.set_vec3(c_str!("sunlight_direction"), &sunlight_direction);
             world.render(&projection, &view);
 
             //let cursor_projection: Matrix4<f32> = perspective_matrix();//cgmath::perspective(cgmath::Deg(90.0), WIDTH as f32 / HEIGHT as f32, 0.1, 100.0);

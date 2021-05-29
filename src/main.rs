@@ -59,6 +59,7 @@ fn main() {
         "shaders/cube_fragment.glsl"
     };
     let world_shader = shader::Shader::new(world_vertex_shader_path, world_fragment_shader_path);
+    
 
     //let mut cube1 = cube::Cube::new([-1.0, 5.0, 5.0], [0.9, 0.2, 0.2]);
 
@@ -67,10 +68,11 @@ fn main() {
     println!("Seed: {}", seed);
     let mut world = world::World::new(mesh::Texture{id: texture_id}, &world_shader, seed);    
 
-    let mut player = player::Player::new(Vector3::new(5.0, 66.0, 4.5), Vector3::new(1.0, 0.0, 1.0));
+    let mut player = player::Player::new(Vector3::new(5.0, 25.0, 4.5), Vector3::new(1.0, 0.0, 1.0));
 
-    let mut sunlight_direction: Vector3<f32> = Vector3 { x: -0.701, y: 0.701, z: -0.701 };
+    let sunlight_direction: Vector3<f32> = Vector3 { x: -0.701, y: 0.701, z: -0.701 };
     
+
     unsafe {
         gl::Enable(gl::DEPTH_TEST);
         gl::Enable(gl::CULL_FACE);
@@ -84,14 +86,11 @@ fn main() {
         let current_time = glfw.get_time();
         frame_count += 1;
         if current_time - previous_time >= 1.0 {
-            // Display the frame count here any way you want.
             println!("FPS: {}", frame_count);
 
             frame_count = 0;
             previous_time = current_time;
         }
-        sunlight_direction.x = glfw.get_time().sin() as f32;
-        sunlight_direction.z = glfw.get_time().cos() as f32;
         //std::thread::sleep(std::time::Duration::from_nanos(11111111));
 
         //world.update_chunks(player.position);
@@ -147,8 +146,14 @@ fn main() {
                         },
                         glfw::MouseButton::Button2 => {
                             if action == glfw::Action::Press {
-                                if let Some((_, world_index)) = dda(&world, &player.camera.position, &player.camera.forward, 6.0) {
-                                    world.place_at_global_pos(world_index, 4);
+                                if let Some((intersect_position, world_index)) = dda(&world, &player.camera.position, &player.camera.forward, 6.0) {
+                                    let intersect_index = Vector3 {
+                                        x: if player.position.x > intersect_position.x { intersect_position.x.floor() } else { intersect_position.x.floor()+1.0 } as isize,
+                                        y: if player.position.y > intersect_position.y { intersect_position.y.floor() } else { intersect_position.y.floor()-1.0 } as isize,
+                                        z: if player.position.z > intersect_position.z { intersect_position.z.floor() } else { intersect_position.z.floor()+1.0 } as isize,
+                                    };
+                                    //let index_diff = intersect_index - world_index;
+                                    world.place_at_global_pos(intersect_index, 4);
                                 }
                             }
                         },

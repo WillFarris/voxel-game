@@ -36,6 +36,8 @@ impl Player {
             y: self.move_speed * self.direction.y as f32,
             z: (self.move_speed * self.camera.right.z * self.direction.x as f32) + (self.move_speed * forward.z * self.direction.z as f32),
         };
+
+
         /*
         let mut collision_box = Vec::with_capacity(4);
         collision_box.push((0.25 * right) + (0.25 * forward) + delta);

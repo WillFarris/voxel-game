@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use cgmath::{Matrix4, Vector3, Vector2};
 
-use crate::{mesh::*, meshgen::{self, *}, shader::Shader};
+use crate::{block::BLOCKS, mesh::*, meshgen::{self, *}, shader::Shader};
 
 use std::ffi::CStr;
 
@@ -51,11 +51,11 @@ pub struct World<'a> {
 
 impl<'a> World<'a> {
     pub fn new(texture: Texture, shader: &'a Shader, seed: u32) -> Self {
-        let mut chunks = HashMap::new();
+        let chunks = HashMap::new();
         let perlin = Perlin::new();
         let noise_offset = Vector2::new(
-            rand::random::<f64>(),
-            rand::random::<f64>(),
+            1_000_000.0 * rand::random::<f64>() + 3_141_592.0,
+            1_000_000.0 * rand::random::<f64>() + 3_141_592.0,
         );
         perlin.set_seed(seed);
 
@@ -68,16 +68,16 @@ impl<'a> World<'a> {
             shader,
         };
         
-        let chunk_radius: isize = 5;
+        let chunk_radius: isize = 2;
         for chunk_x in -chunk_radius..chunk_radius {
-            for chunk_y in 0..(2*chunk_radius) {
+            for chunk_y in 0..chunk_radius {
                 for chunk_z in -chunk_radius..chunk_radius {
                     let chunk_index = Vector3::new(chunk_x, chunk_y, chunk_z);
                     let chunk_data: [[[usize; CHUNK_SIZE]; CHUNK_SIZE]; CHUNK_SIZE] = [[[0; CHUNK_SIZE]; CHUNK_SIZE]; CHUNK_SIZE];
                     let mut cur_chunk = Chunk::from_blocks(chunk_data, 16 * chunk_index, None, world.texture.id);
                     
                     world.gen_terrain(&chunk_index, &mut cur_chunk);
-                    world.gen_caves(&chunk_index, &mut cur_chunk);
+                    //world.gen_caves(&chunk_index, &mut cur_chunk);
 
                     world.chunks.insert(chunk_index, cur_chunk);
                 }
@@ -97,7 +97,7 @@ impl<'a> World<'a> {
     }
 
     fn gen_terrain(&mut self, chunk_index: &Vector3<isize>, chunk: &mut Chunk) {
-        let noise_scale = 0.03;
+        let noise_scale = 0.02;
 
         //println!("Generating terrain...");
 
@@ -108,9 +108,9 @@ impl<'a> World<'a> {
                     let global_y = (block_y as isize + (chunk_index.y * CHUNK_SIZE as isize)) as f64;
                     let global_z = (block_z as isize + (chunk_index.z * CHUNK_SIZE as isize)) as f64;
                     let surface_y = 
-                            5.0 * self.perlin.get([2.0 * noise_scale * global_x + self.noise_offset.x, 2.0 * noise_scale * global_z + self.noise_offset.y])
-                        + 10.0 * self.perlin.get([noise_scale * global_x + 0.5 * self.noise_offset.x, noise_scale * global_z + 0.5 * self.noise_offset.y])
-                        + 40.0;
+                            5.0 * self.perlin.get([noise_scale * global_x + self.noise_offset.x, noise_scale * global_z + self.noise_offset.y])
+                            //+ (50.0 * self.perlin.get([0.1 * noise_scale * self.noise_offset.x - 100.0, self.noise_offset.y - 44310.0]) + 3.0)
+                            + 10.0;
                     if global_y < surface_y {
                         if global_y == surface_y.floor() {
                             chunk.blocks[block_x][block_y][block_z] = 2;
@@ -252,8 +252,44 @@ impl<'a> World<'a> {
     pub fn place_at_global_pos(&mut self, world_pos: Vector3<isize>, block_id: usize) {
         let (chunk_index, block_index) = World::chunk_and_block_index(&world_pos);
         if let Some(chunk) = self.chunks.get_mut(&chunk_index) {
-            println!("TODO: Place block");
-            //chunk.place_at_chunk_pos(block_index, block_id);
+            //chunk.destroy_at_chunk_pos(block_index);
+            chunk.blocks[block_index.x][block_index.y][block_index.z] = block_id;
+            self.gen_chunk_mesh(&chunk_index);
+            if block_index.x == 0 {
+                let adjacent_chunk_index = chunk_index - Vector3::new(1, 0, 0);
+                if let Some(_) = self.chunks.get(&adjacent_chunk_index) {
+                    self.gen_chunk_mesh(&adjacent_chunk_index);
+                }
+            } else if block_index.x == CHUNK_SIZE-1 {
+                let adjacent_chunk_index = chunk_index + Vector3::new(1, 0, 0);
+                if let Some(_) = self.chunks.get(&adjacent_chunk_index) {
+                    self.gen_chunk_mesh(&adjacent_chunk_index);
+                }
+            }
+
+            if block_index.y == 0 {
+                let adjacent_chunk_index = chunk_index - Vector3::new(0, 1, 0);
+                if let Some(_) = self.chunks.get(&adjacent_chunk_index) {
+                    self.gen_chunk_mesh(&adjacent_chunk_index);
+                }
+            } else if block_index.y == CHUNK_SIZE-1 {
+                let adjacent_chunk_index = chunk_index + Vector3::new(0, 1, 0);
+                if let Some(_) = self.chunks.get(&adjacent_chunk_index) {
+                    self.gen_chunk_mesh(&adjacent_chunk_index);
+                }
+            }
+
+            if block_index.z == 0 {
+                let adjacent_chunk_index = chunk_index - Vector3::new(0, 0, 1);
+                if let Some(_) = self.chunks.get(&adjacent_chunk_index) {
+                    self.gen_chunk_mesh(&adjacent_chunk_index);
+                }
+            } else if block_index.z == CHUNK_SIZE-1 {
+                let adjacent_chunk_index = chunk_index + Vector3::new(0, 0, 1);
+                if let Some(_) = self.chunks.get(&adjacent_chunk_index) {
+                    self.gen_chunk_mesh(&adjacent_chunk_index);
+                }
+            }
         }
     }
 
@@ -313,7 +349,7 @@ impl<'a> World<'a> {
 
                         let position = [x as f32, y as f32, z as f32];
                         if x < 15 {
-                            if current_chunk.block_at_chunk_pos(&Vector3::new(x+1, y, z)) == 0 {
+                            if BLOCKS[current_chunk.block_at_chunk_pos(&Vector3::new(x+1, y, z))].transparent == true {
                                 push_face(&position, 0, &mut chunk_vertices, &tex_coords[0]);
                             }
                         } else {
@@ -325,7 +361,7 @@ impl<'a> World<'a> {
                         }
 
                         if x > 0 {
-                            if current_chunk.block_at_chunk_pos(&Vector3::new(x-1, y, z)) == 0 {
+                            if BLOCKS[current_chunk.block_at_chunk_pos(&Vector3::new(x-1, y, z))].transparent == true {
                                 push_face(&position, 1, &mut chunk_vertices, &tex_coords[1]);
                             }
                         } else {
@@ -337,7 +373,7 @@ impl<'a> World<'a> {
                         }
 
                         if y < 15 {
-                            if current_chunk.block_at_chunk_pos(&Vector3::new(x, y+1, z)) == 0 {
+                            if BLOCKS[current_chunk.block_at_chunk_pos(&Vector3::new(x, y+1, z))].transparent == true {
                                 push_face(&position, 2, &mut chunk_vertices, &tex_coords[2]);
                             }
                         } else {
@@ -349,7 +385,7 @@ impl<'a> World<'a> {
                         }
 
                         if y > 0 {
-                            if current_chunk.block_at_chunk_pos(&Vector3::new(x, y-1, z)) == 0 {
+                            if BLOCKS[current_chunk.block_at_chunk_pos(&Vector3::new(x, y-1, z))].transparent == true {
                                 push_face(&position, 3, &mut chunk_vertices, &tex_coords[3]);
                             }
                         } else {
@@ -361,7 +397,7 @@ impl<'a> World<'a> {
                         }
 
                         if z < 15 {
-                            if current_chunk.block_at_chunk_pos(&Vector3::new(x, y, z+1)) == 0 {
+                            if BLOCKS[current_chunk.block_at_chunk_pos(&Vector3::new(x, y, z+1))].transparent == true {
                                 push_face(&position, 4, &mut chunk_vertices, &tex_coords[4]);
                             }
                         } else {
@@ -373,7 +409,7 @@ impl<'a> World<'a> {
                         }
 
                         if z > 0 {
-                            if current_chunk.block_at_chunk_pos(&Vector3::new(x, y, z-1)) == 0 {
+                            if BLOCKS[current_chunk.block_at_chunk_pos(&Vector3::new(x, y, z-1))].transparent == true {
                                 push_face(&position, 5, &mut chunk_vertices, &tex_coords[5]);
                             }
                         } else {

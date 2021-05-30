@@ -24,8 +24,8 @@ extern crate image;
 extern crate glfw;
 extern crate gl;
 
-const WIDTH: u32 = 1920;
-const HEIGHT: u32 = 1080;
+const WIDTH: u32 = 800;
+const HEIGHT: u32 = 600;
 
 fn main() {
 
@@ -49,17 +49,17 @@ fn main() {
     gl::load_with(|symbol| window.get_proc_address(symbol) as *const _);
 
     let terrain_vertex_shader_path = if cfg!(target_arch = "arm") {
-        "shaders/cube_vertex_es.glsl"
+        "shaders/terrain_vertex_es.glsl"
     } else {
         "shaders/terrain_vertex.glsl"
     };
     let solid_fragment_shader_path = if cfg!(target_arch = "arm") {
-        "shaders/cube_fragment_es.glsl"
+        "shaders/solid_fragment_es.glsl"
     } else {
         "shaders/solid_fragment.glsl"
     };
     let transparent_fragment_shader_path = if cfg!(target_arch = "arm") {
-        "shaders/cube_fragment_es.glsl"
+        "shaders/transparent_fragment_es.glsl"
     } else {
         "shaders/transparent_fragment.glsl"
     };
@@ -114,8 +114,7 @@ fn main() {
         }*/
         //cursor_position = player.position + player.delta;
 
-        unsafe {
-            
+        unsafe {          
             gl::ClearColor(0.1, 0.4, 0.95, 1.0);
             gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
 

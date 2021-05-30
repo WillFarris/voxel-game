@@ -21,6 +21,6 @@ void main() {
     v_position = pos.xyz;
     v_normal = transpose(inverse(mat3(model_matrix))) * normal;
     v_tex_coords = tex_coords;
-    
+
     gl_Position = pos;
 }

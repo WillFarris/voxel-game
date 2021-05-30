@@ -10,11 +10,12 @@ uniform vec3 sunlight_direction;
 uniform sampler2D texture_map;
 
 out vec4 color;
+out vec3 normal;
 
 void main() {
-    float diffuse = max(dot(normalize(v_normal), normalize(sunlight_direction)), 0.2);
-
     vec3 tex_color = texture(texture_map, v_tex_coords).rgb;
+
+    float diffuse = max(dot(normalize(v_normal), normalize(sunlight_direction)), 0.2);
 
     vec3 camera_dir = normalize(-v_position);
     vec3 half_direction = normalize(normalize(sunlight_direction) + camera_dir);

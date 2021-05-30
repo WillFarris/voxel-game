@@ -113,7 +113,6 @@ impl<'a> World<'a> {
                         if global_y == surface_y.floor() {
                             chunk.blocks[block_x][block_y][block_z] = 2;
                             if rand::random::<usize>()%100 < 1 {
-                                println!("trying to place tree at {} {} {}", block_x, block_y, block_z);
                                 self.place_tree(Vector3::new(block_x, block_y, block_z), chunk);
                             } else if rand::random::<usize>()%100 < 10 {
                                 chunk.blocks[block_x][block_y+1][block_z] = 12;
@@ -155,7 +154,6 @@ impl<'a> World<'a> {
     pub fn place_tree(&mut self, block_index: Vector3<usize>, chunk: &mut Chunk) {
 
         if block_index.x == 0 || block_index.x == CHUNK_SIZE-1 || block_index.z == 0 || block_index.z == CHUNK_SIZE-1 {
-            println!("Can't place tree at {:?}", block_index);
             return;
         }
         

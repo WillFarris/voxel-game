@@ -2,8 +2,9 @@ use std::collections::HashMap;
 
 use cgmath::{Matrix4, Vector3, Vector2};
 use gl::CULL_FACE;
+use rand::random;
 
-use crate::{block::{BLOCKS, MeshType}, mesh::*, meshgen::{self, *}, shader::Shader, vectormath::{dot, len, normalize}};
+use crate::{block::{self, BLOCKS, MeshType}, mesh::*, meshgen::{self, *}, shader::Shader, vectormath::{dot, len, normalize}};
 
 use std::ffi::CStr;
 
@@ -66,7 +67,7 @@ impl<'a> World<'a> {
             transparent_shader,
         };
         
-        let chunk_radius: isize = 2;
+        let chunk_radius: isize = 5;
         for chunk_x in -chunk_radius..chunk_radius {
             for chunk_y in 0..chunk_radius {
                 for chunk_z in -chunk_radius..chunk_radius {
@@ -76,7 +77,6 @@ impl<'a> World<'a> {
                     
                     world.gen_terrain(&chunk_index, &mut cur_chunk);
                     //world.gen_caves(&chunk_index, &mut cur_chunk);
-
                     world.chunks.insert(chunk_index, cur_chunk);
                 }
             }
@@ -108,10 +108,18 @@ impl<'a> World<'a> {
                     let surface_y = 
                             5.0 * self.perlin.get([noise_scale * global_x + self.noise_offset.x, noise_scale * global_z + self.noise_offset.y])
                             //+ (50.0 * self.perlin.get([0.1 * noise_scale * self.noise_offset.x - 100.0, self.noise_offset.y - 44310.0]) + 3.0)
-                            + 10.0;
+                            + 5.1;
                     if global_y < surface_y {
                         if global_y == surface_y.floor() {
                             chunk.blocks[block_x][block_y][block_z] = 2;
+                            if rand::random::<usize>()%100 < 1 {
+                                println!("trying to place tree at {} {} {}", block_x, block_y, block_z);
+                                self.place_tree(Vector3::new(block_x, block_y, block_z), chunk);
+                            } else if rand::random::<usize>()%100 < 10 {
+                                chunk.blocks[block_x][block_y+1][block_z] = 12;
+                            } else if rand::random::<usize>()%50 < 1 {
+                                chunk.blocks[block_x][block_y+1][block_z] = 7;
+                            }
                         } else if global_y < (surface_y/2.0).floor() {
                             chunk.blocks[block_x][block_y][block_z] = 1;
                         } else {
@@ -141,6 +149,29 @@ impl<'a> World<'a> {
                     }
                 }
             }
+        }
+    }
+
+    pub fn place_tree(&mut self, block_index: Vector3<usize>, chunk: &mut Chunk) {
+
+        if block_index.x == 0 || block_index.x == CHUNK_SIZE-1 || block_index.z == 0 || block_index.z == CHUNK_SIZE-1 {
+            println!("Can't place tree at {:?}", block_index);
+            return;
+        }
+        
+        for x in block_index.x-1..=block_index.x+1 {
+            for z in block_index.z-1..=block_index.z+1 {
+                for y in block_index.y+3..block_index.y+6 {
+                    chunk.blocks[x][y][z] = 11;
+                }
+            }
+        }
+        chunk.blocks[block_index.x-1][block_index.y+5][block_index.z-1] = 0;
+        chunk.blocks[block_index.x+1][block_index.y+5][block_index.z+1] = 0;
+        chunk.blocks[block_index.x+1][block_index.y+5][block_index.z-1] = 0;
+        chunk.blocks[block_index.x-1][block_index.y+5][block_index.z+1] = 0;
+        for y in 1..5 {
+            chunk.blocks[block_index.x][block_index.y+y][block_index.z] = 9;
         }
     }
 
@@ -184,7 +215,7 @@ impl<'a> World<'a> {
     }*/
 
     pub fn render_solid(&self, player_position: Vector3<f32>, player_direction: Vector3<f32>) {
-        unsafe{
+        unsafe {
             gl::Enable(gl::CULL_FACE);
             for (position, chunk) in &self.chunks {
                 //chunk.render(self.shader);
@@ -407,18 +438,6 @@ impl<'a> World<'a> {
                                         push_face(&position, 1, cur_vertices, &tex_coords[1]);
                                     }
                                 }
-        
-                                /*if x > 0 {
-                                    if BLOCKS[current_chunk.block_at_chunk_pos(&Vector3::new(x-1, y, z))].transparent {
-                                        push_face(&position, 1, cur_vertices, &tex_coords[1]);
-                                    }
-                                } else {
-                                    if let Some(adjacent_chunk) = self.chunks.get(&(*chunk_index + Vector3::new(-1isize, 0, 0))) {
-                                        if BLOCKS[adjacent_chunk.block_at_chunk_pos(&Vector3::new(CHUNK_SIZE-1, y, z))].transparent {
-                                            push_face(&position, 1, cur_vertices, &tex_coords[1]);
-                                        }
-                                    }
-                                }*/
 
         
                                 let y_top_adjacent = if y < 15 {
@@ -433,17 +452,6 @@ impl<'a> World<'a> {
                                         push_face(&position, 2, cur_vertices, &tex_coords[2]);
                                     }
                                 }
-                                /*if y < 15 {
-                                    if BLOCKS[current_chunk.block_at_chunk_pos(&Vector3::new(x, y+1, z))].transparent {
-                                        push_face(&position, 2, cur_vertices, &tex_coords[2]);
-                                    }
-                                } else {
-                                    if let Some(adjacent_chunk) = self.chunks.get(&(*chunk_index + Vector3::new(0, 1isize, 0))) {
-                                        if BLOCKS[adjacent_chunk.block_at_chunk_pos(&Vector3::new(x, 0, z))].transparent {
-                                            push_face(&position, 2, cur_vertices, &tex_coords[2]);
-                                        }
-                                    }
-                                }*/
         
                                 let y_bottom_adjacent = if y > 0 {
                                     Some(BLOCKS[current_chunk.block_at_chunk_pos(&Vector3::new(x, y-1, z))])
@@ -457,17 +465,6 @@ impl<'a> World<'a> {
                                         push_face(&position, 3, cur_vertices, &tex_coords[3]);
                                     }
                                 }
-                                /*if y > 0 {
-                                    if BLOCKS[current_chunk.block_at_chunk_pos(&Vector3::new(x, y-1, z))].transparent {
-                                        push_face(&position, 3, cur_vertices, &tex_coords[3]);
-                                    }
-                                } else {
-                                    if let Some(adjacent_chunk) = self.chunks.get(&(*chunk_index - Vector3::new(0, 1isize, 0))) {
-                                        if BLOCKS[adjacent_chunk.block_at_chunk_pos(&Vector3::new(x, CHUNK_SIZE-1, z))].transparent {
-                                            push_face(&position, 3, cur_vertices, &tex_coords[3]);
-                                        }
-                                    }
-                                }*/
 
                                 let z_back_adjacent = if z < 15 {
                                     Some(BLOCKS[current_chunk.block_at_chunk_pos(&Vector3::new(x, y, z+1))])
@@ -481,18 +478,6 @@ impl<'a> World<'a> {
                                         push_face(&position, 4, cur_vertices, &tex_coords[4]);
                                     }
                                 }
-        
-                                /*if z < 15 {
-                                    if BLOCKS[current_chunk.block_at_chunk_pos(&Vector3::new(x, y, z+1))].transparent {
-                                        push_face(&position, 4, cur_vertices, &tex_coords[4]);
-                                    }
-                                } else {
-                                    if let Some(adjacent_chunk) = self.chunks.get(&(*chunk_index + Vector3::new(0, 0, 1isize))) {
-                                        if BLOCKS[adjacent_chunk.block_at_chunk_pos(&Vector3::new(x, y, 0))].transparent {
-                                            push_face(&position, 4, cur_vertices, &tex_coords[4]);
-                                        }
-                                    }
-                                }*/
 
 
                                 let z_front_adjacent = if z > 0 {
@@ -507,18 +492,6 @@ impl<'a> World<'a> {
                                         push_face(&position, 5, cur_vertices, &tex_coords[5]);
                                     }
                                 }
-        
-                                /*if z > 0 {
-                                    if BLOCKS[current_chunk.block_at_chunk_pos(&Vector3::new(x, y, z-1))].transparent {
-                                        push_face(&position, 5,cur_vertices, &tex_coords[5]);
-                                    }
-                                } else {
-                                    if let Some(adjacent_chunk) = self.chunks.get(&(*chunk_index - Vector3::new(0, 0, 1isize))) {
-                                        if BLOCKS[adjacent_chunk.block_at_chunk_pos(&Vector3::new(x, y, CHUNK_SIZE-1))].transparent {
-                                            push_face(&position, 5, cur_vertices, &tex_coords[5]);
-                                        }
-                                    }
-                                }*/
                             }
                             MeshType::CrossedPlanes => {
                                 push_face(&position, 6, cur_vertices, &tex_coords[0]);

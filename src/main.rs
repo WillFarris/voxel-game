@@ -24,8 +24,8 @@ extern crate image;
 extern crate glfw;
 extern crate gl;
 
-const WIDTH: u32 = 1000;
-const HEIGHT: u32 = 650;
+const WIDTH: u32 = 1920;
+const HEIGHT: u32 = 1080;
 
 fn main() {
 
@@ -104,8 +104,8 @@ fn main() {
         }
         //std::thread::sleep(std::time::Duration::from_nanos(11111111));
 
-        sunlight_direction.x = glfw.get_time().sin() as f32;
-        sunlight_direction.z = glfw.get_time().cos() as f32;
+        //sunlight_direction.x = glfw.get_time().sin() as f32;
+        //sunlight_direction.z = glfw.get_time().cos() as f32;
 
         //world.update_chunks(player.position);
         player.update(&world);
@@ -178,7 +178,8 @@ fn main() {
                                         z: if player.position.z.floor() < intersect_position.z { intersect_position.z.floor() } else { intersect_position.z.round() } as isize,
                                     };
                                     //let index_diff = intersect_index - world_index;
-                                    world.place_at_global_pos(intersect_index, 11);
+                                    world.place_at_global_pos(intersect_index, if rand::random() { 12 } else { 7 });
+                                    //world.place_tree(world_index);
                                 }
                             }
                         },

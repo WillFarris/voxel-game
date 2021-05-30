@@ -116,8 +116,10 @@ impl<'a> World<'a> {
                                 self.place_tree(Vector3::new(block_x, block_y, block_z), chunk);
                             } else if rand::random::<usize>()%100 < 10 {
                                 chunk.blocks[block_x][block_y+1][block_z] = 12;
-                            } else if rand::random::<usize>()%50 < 1 {
+                            } else if rand::random::<usize>()%100 < 1 {
                                 chunk.blocks[block_x][block_y+1][block_z] = 7;
+                            } else if rand::random::<usize>()%75 < 1 {
+                                chunk.blocks[block_x][block_y+1][block_z] = 10;
                             }
                         } else if global_y < (surface_y/2.0).floor() {
                             chunk.blocks[block_x][block_y][block_z] = 1;

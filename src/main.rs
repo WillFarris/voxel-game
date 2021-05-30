@@ -24,8 +24,8 @@ extern crate image;
 extern crate glfw;
 extern crate gl;
 
-const WIDTH: u32 = 800;
-const HEIGHT: u32 = 600;
+const WIDTH: u32 = 1920;
+const HEIGHT: u32 = 1080;
 
 fn main() {
 
@@ -95,20 +95,15 @@ fn main() {
     let mut frame_count = 0;
     while !window.should_close() {
         let current_time = glfw.get_time();
-        frame_count += 1;
-        if current_time - previous_time >= 1.0 {
-            println!("FPS: {}", frame_count);
-
-            frame_count = 0;
-            previous_time = current_time;
-        }
+        let delta_time = (current_time - previous_time) as f32;
+        previous_time = current_time;
         //std::thread::sleep(std::time::Duration::from_nanos(11111111));
 
         //sunlight_direction.x = glfw.get_time().sin() as f32;
         //sunlight_direction.z = glfw.get_time().cos() as f32;
 
         //world.update_chunks(player.position);
-        player.update(&world);
+        player.update(&world, delta_time);
         /*if let Some((intersect, block, )) = dda(&chunk, &player.delta, &player.direction, vectormath::len(&player.delta)) {
             cursor_position = intersect;
         }*/

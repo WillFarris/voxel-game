@@ -2,14 +2,20 @@ use crate::mesh::Mesh;
 
 
 
-pub const BLOCKS: [Block; 7] = [
+pub const BLOCKS: [Block; 13] = [
     Block {id: 0, name: "Air",  transparent: true, mesh_type: MeshType::Block, texture_map: None },
-    Block {id: 1, name: "Stone", transparent: false, mesh_type: MeshType::Block, texture_map: Some(TextureType::Single(1,15)) },
-    Block {id: 2, name: "Grass", transparent: false, mesh_type: MeshType::Block, texture_map: Some(TextureType::TopSideBottom((0,15), (3, 15), (2, 15))) },
-    Block {id: 3, name: "Dirt", transparent: false, mesh_type: MeshType::Block, texture_map: Some(TextureType::Single(2,15)) },
-    Block {id: 4, name: "Cobblestone", transparent: false, mesh_type: MeshType::Block, texture_map: Some(TextureType::Single(0,14)) },
-    Block {id: 5, name: "Oak Plank", transparent: false, mesh_type: MeshType::Block, texture_map: Some(TextureType::Single(4,15)) },
-    Block {id: 6, name: "Sand", transparent: false, mesh_type: MeshType::Block, texture_map: Some(TextureType::Single(0,1)) },
+    Block {id: 1, name: "Stone", transparent: false, mesh_type: MeshType::Block, texture_map: Some(TextureType::Single(1.0, 15.0)) },
+    Block {id: 2, name: "Grass", transparent: false, mesh_type: MeshType::Block, texture_map: Some(TextureType::TopSideBottom((0.0, 15.0), (3.0, 15.0), (2.0, 15.0))) },
+    Block {id: 3, name: "Dirt", transparent: false, mesh_type: MeshType::Block, texture_map: Some(TextureType::Single(2.0, 15.0)) },
+    Block {id: 4, name: "Cobblestone", transparent: false, mesh_type: MeshType::Block, texture_map: Some(TextureType::Single(0.0, 14.0)) },
+    Block {id: 5, name: "Oak Plank", transparent: false, mesh_type: MeshType::Block, texture_map: Some(TextureType::Single(4.0, 15.0)) },
+    Block {id: 6, name: "Sand", transparent: false, mesh_type: MeshType::Block, texture_map: Some(TextureType::Single(0.0, 1.0)) },
+    Block {id: 7, name: "Rose", transparent: true, mesh_type: MeshType::CrossedPlanes, texture_map: Some(TextureType::Single(12.0, 15.0))},
+    Block {id: 8, name: "Glass", transparent: true, mesh_type: MeshType::Block, texture_map: Some(TextureType::Single(1.0, 12.0))},
+    Block {id: 9, name: "Oak Log", transparent: false, mesh_type: MeshType::Block, texture_map: Some(TextureType::TopAndSide((5.0, 14.0), (4.0, 14.0)))},
+    Block {id: 10, name: "Dandelion", transparent: true, mesh_type: MeshType::CrossedPlanes, texture_map: Some(TextureType::Single(13.0, 15.0))},
+    Block {id: 11, name: "Oak Leaves", transparent: true, mesh_type: MeshType::Block, texture_map: Some(TextureType::Single(4.0, 12.0))},
+    Block {id: 12, name: "Short Grass", transparent: true, mesh_type: MeshType::CrossedPlanes, texture_map: Some(TextureType::Single(7.0, 13.0))},
 ];
 
 #[derive(Clone, Copy)]
@@ -21,9 +27,9 @@ pub enum MeshType {
 #[allow(unused)]
 #[derive(Clone, Copy)]
 pub enum TextureType {
-    Single(usize, usize),
-    TopAndSide((usize, usize), (usize, usize)),
-    TopSideBottom((usize, usize), (usize, usize), (usize, usize)),
+    Single(f32, f32),
+    TopAndSide((f32, f32), (f32, f32)),
+    TopSideBottom((f32, f32), (f32, f32), (f32, f32)),
 }
 
 #[allow(unused)]

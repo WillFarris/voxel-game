@@ -1,4 +1,7 @@
+use std::ops::Mul;
+
 use cgmath::{Matrix3, Vector3, Vector4};
+use noise::Add;
 
 use crate::world;
 
@@ -106,7 +109,7 @@ pub fn cross(a: Vector3<f32>, b: Vector3<f32>) -> Vector3<f32> {
     )
 }
 
-pub fn dot(u: Vector3<f32>, v: Vector3<f32>) -> f32 {
+pub fn dot<T: std::ops::Add<Output = T> + Mul<Output = T>>(u: Vector3<T>, v: Vector3<T>) -> T {
     u.x * v.x + u.y * v.y + u.z * v.z
 }
 

@@ -1,7 +1,7 @@
-use crate::{block::*, vertex::*, world::CHUNK_SIZE};
+use crate::{block::*, vertex::*, world::{CHUNK_SIZE, Chunk}};
 use cgmath::{Vector2, Vector3};
 
-const CUBE_FACES: [[Vertex; 6]; 6] = [
+const CUBE_FACES: [[Vertex; 6]; 10] = [
     
     // Facing positive-X
     [
@@ -68,11 +68,56 @@ const CUBE_FACES: [[Vertex; 6]; 6] = [
         Vertex { position: Vector3::new(0.0,  1.0, 0.0), normal: Vector3::new( 0.0,  0.0, -1.0), tex_coords: Vector2::new(0.0, 1.0) },   // Back-top-left
         Vertex { position: Vector3::new( 1.0,  1.0, 0.0), normal: Vector3::new( 0.0,  0.0, -1.0), tex_coords: Vector2::new(1.0, 1.0) }     // Back-top-right
     ],
+
+    // Diagonal (0, 0) -> (1, 1)
+    [
+        Vertex { position: Vector3::new(0.146446609407, 1.0, 0.146446609407), normal: Vector3::new(-0.701, 0.0, -0.701), tex_coords: Vector2::new(0.0, 1.0) },
+        Vertex { position: Vector3::new(0.853553390593, 0.0, 0.853553390593), normal: Vector3::new(-0.701, 0.0, -0.701), tex_coords: Vector2::new(1.0, 0.0) },
+        Vertex { position: Vector3::new(0.146446609407, 0.0, 0.146446609407), normal: Vector3::new(-0.701, 0.0, -0.701), tex_coords: Vector2::new(0.0, 0.0) },
+
+        Vertex { position: Vector3::new(0.146446609407, 1.0, 0.146446609407), normal: Vector3::new(-0.701, 0.0, -0.701), tex_coords: Vector2::new(0.0, 1.0) },
+        Vertex { position: Vector3::new(0.853553390593, 1.0, 0.853553390593), normal: Vector3::new(-0.701, 0.0, -0.701), tex_coords: Vector2::new(1.0, 1.0) },
+        Vertex { position: Vector3::new(0.853553390593, 0.0, 0.853553390593), normal: Vector3::new(-0.701, 0.0, -0.701), tex_coords: Vector2::new(1.0, 0.0) },
+    ],
+
+    // Diagonal (1, 1) -> (0, 0)
+    [
+        Vertex { position: Vector3::new(0.146446609407, 1.0, 0.146446609407), normal: Vector3::new(0.701, 0.0, 0.701), tex_coords: Vector2::new(0.0, 1.0) },
+        Vertex { position: Vector3::new(0.146446609407, 0.0, 0.146446609407), normal: Vector3::new(0.701, 0.0, 0.701), tex_coords: Vector2::new(0.0, 0.0) },
+        Vertex { position: Vector3::new(0.853553390593, 0.0, 0.853553390593), normal: Vector3::new(0.701, 0.0, 0.701), tex_coords: Vector2::new(1.0, 0.0) },
+
+        Vertex { position: Vector3::new(0.146446609407, 1.0, 0.146446609407), normal: Vector3::new(0.701, 0.0, 0.701), tex_coords: Vector2::new(0.0, 1.0) },
+        Vertex { position: Vector3::new(0.853553390593, 0.0, 0.853553390593), normal: Vector3::new(0.701, 0.0, 0.701), tex_coords: Vector2::new(1.0, 0.0) },
+        Vertex { position: Vector3::new(0.853553390593, 1.0, 0.853553390593), normal: Vector3::new(0.701, 0.0, 0.701), tex_coords: Vector2::new(1.0, 1.0) },
+    ],
+
+    // Diagonal (0, 1) -> (1, 0)
+    [
+        Vertex { position: Vector3::new(0.146446609407, 1.0, 0.853553390593), normal: Vector3::new(0.701, 0.0, 0.701), tex_coords: Vector2::new(0.0, 1.0) },
+        Vertex { position: Vector3::new(0.853553390593, 0.0, 0.146446609407), normal: Vector3::new(0.701, 0.0, 0.701), tex_coords: Vector2::new(1.0, 0.0) },
+        Vertex { position: Vector3::new(0.146446609407, 0.0, 0.853553390593), normal: Vector3::new(0.701, 0.0, 0.701), tex_coords: Vector2::new(0.0, 0.0) },
+
+        Vertex { position: Vector3::new(0.146446609407, 1.0, 0.853553390593), normal: Vector3::new(0.701, 0.0, 0.701), tex_coords: Vector2::new(0.0, 1.0) },
+        Vertex { position: Vector3::new(0.853553390593, 1.0, 0.146446609407), normal: Vector3::new(0.701, 0.0, 0.701), tex_coords: Vector2::new(1.0, 1.0) },
+        Vertex { position: Vector3::new(0.853553390593, 0.0, 0.146446609407), normal: Vector3::new(0.701, 0.0, 0.701), tex_coords: Vector2::new(1.0, 0.0) },
+    ],
+
+    // Diagonal (1, 0) -> (0, 1)
+    [
+        Vertex { position: Vector3::new(0.146446609407, 1.0, 0.853553390593), normal: Vector3::new(0.0, 0.0, 0.0), tex_coords: Vector2::new(0.0, 1.0) },
+        Vertex { position: Vector3::new(0.146446609407, 0.0, 0.853553390593), normal: Vector3::new(0.0, 0.0, 0.0), tex_coords: Vector2::new(0.0, 0.0) },
+        Vertex { position: Vector3::new(0.853553390593, 0.0, 0.146446609407), normal: Vector3::new(0.0, 0.0, 0.0), tex_coords: Vector2::new(1.0, 0.0) },
+
+        Vertex { position: Vector3::new(0.146446609407, 1.0, 0.853553390593), normal: Vector3::new(0.0, 0.0, 0.0), tex_coords: Vector2::new(0.0, 1.0) },
+        Vertex { position: Vector3::new(0.853553390593, 0.0, 0.146446609407), normal: Vector3::new(0.0, 0.0, 0.0), tex_coords: Vector2::new(1.0, 0.0) },
+        Vertex { position: Vector3::new(0.853553390593, 1.0, 0.146446609407), normal: Vector3::new(0.0, 0.0, 0.0), tex_coords: Vector2::new(1.0, 1.0) },
+    ],
 ];
 
-pub fn push_face(position: &[f32; 3], face: usize, vertices: &mut Vec<Vertex>, texmap_offset: &(usize, usize)) {
+pub fn push_face(position: &[f32; 3], face: usize, vertices: &mut Vec<Vertex>, texmap_offset: &(f32, f32)) {
+
     for v in 0..6 {
-        let mut vertex = CUBE_FACES[face][v].clone();
+        let mut vertex = CUBE_FACES[face][v];
         vertex.position.x += position[0];
         vertex.position.y += position[1];
         vertex.position.z += position[2];

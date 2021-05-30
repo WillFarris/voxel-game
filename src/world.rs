@@ -1,8 +1,9 @@
 use std::collections::HashMap;
 
 use cgmath::{Matrix4, Vector3, Vector2};
+use gl::CULL_FACE;
 
-use crate::{block::BLOCKS, mesh::*, meshgen::{self, *}, shader::Shader};
+use crate::{block::{BLOCKS, MeshType}, mesh::*, meshgen::{self, *}, shader::Shader, vectormath::{dot, len, normalize}};
 
 use std::ffi::CStr;
 
@@ -12,26 +13,21 @@ pub const CHUNK_SIZE: usize = 16;
 
 pub struct Chunk {
     blocks: [[[usize; CHUNK_SIZE]; CHUNK_SIZE]; CHUNK_SIZE],
-    mesh: Option<Mesh>,
+    solid_mesh: Option<Mesh>,
+    transparent_mesh: Option<Mesh>,
     model_matrix: Matrix4<f32>,
     texture: Texture,
 }
 
 impl Chunk {
-    pub fn from_blocks(blocks: [[[usize; CHUNK_SIZE]; CHUNK_SIZE]; CHUNK_SIZE], position: Vector3<isize>, mesh: Option<Mesh>, texture_id: u32) -> Self {
+    pub fn from_blocks(blocks: [[[usize; CHUNK_SIZE]; CHUNK_SIZE]; CHUNK_SIZE], position: Vector3<isize>, solid_mesh: Option<Mesh>, transparent_mesh: Option<Mesh>, texture_id: u32) -> Self {
         let texture = Texture {id: texture_id};
         Self {
             blocks,
-            mesh,
+            solid_mesh,
+            transparent_mesh,
             model_matrix: Matrix4::from_translation(Vector3::new(position.x as f32, position.y as f32, position.z as f32)),
             texture,
-        }
-    }
-
-    pub unsafe fn render(&self, _projection_matrix: &Matrix4<f32>, _view_matrix: &Matrix4<f32>, shader: &Shader) {
-        shader.set_mat4(c_str!("model_matrix"), &self.model_matrix);
-        if let Some(m) = &self.mesh {
-            m.draw();
         }
     }
 
@@ -46,11 +42,12 @@ pub struct World<'a> {
     noise_offset: Vector2<f64>,
     perlin: Perlin,
     texture: Texture,
-    shader: &'a Shader,
+    solid_shader: &'a Shader,
+    transparent_shader: &'a Shader,
 }
 
 impl<'a> World<'a> {
-    pub fn new(texture: Texture, shader: &'a Shader, seed: u32) -> Self {
+    pub fn new(texture: Texture, solid_shader: &'a Shader, transparent_shader: &'a Shader, seed: u32) -> Self {
         let chunks = HashMap::new();
         let perlin = Perlin::new();
         let noise_offset = Vector2::new(
@@ -65,7 +62,8 @@ impl<'a> World<'a> {
             noise_offset,
             perlin,
             texture,
-            shader,
+            solid_shader,
+            transparent_shader,
         };
         
         let chunk_radius: isize = 2;
@@ -74,7 +72,7 @@ impl<'a> World<'a> {
                 for chunk_z in -chunk_radius..chunk_radius {
                     let chunk_index = Vector3::new(chunk_x, chunk_y, chunk_z);
                     let chunk_data: [[[usize; CHUNK_SIZE]; CHUNK_SIZE]; CHUNK_SIZE] = [[[0; CHUNK_SIZE]; CHUNK_SIZE]; CHUNK_SIZE];
-                    let mut cur_chunk = Chunk::from_blocks(chunk_data, 16 * chunk_index, None, world.texture.id);
+                    let mut cur_chunk = Chunk::from_blocks(chunk_data, 16 * chunk_index, None, None, world.texture.id);
                     
                     world.gen_terrain(&chunk_index, &mut cur_chunk);
                     //world.gen_caves(&chunk_index, &mut cur_chunk);
@@ -147,7 +145,7 @@ impl<'a> World<'a> {
     }
 
     pub fn chunk_from_block_array(&mut self, chunk_index: Vector3<isize>, blocks: [[[usize; CHUNK_SIZE]; CHUNK_SIZE]; CHUNK_SIZE]) {
-        let new_chunk = Chunk::from_blocks(blocks, 16 * chunk_index, None, self.texture.id);
+        let new_chunk = Chunk::from_blocks(blocks, 16 * chunk_index, None, None, self.texture.id);
         self.chunks.insert(chunk_index, new_chunk);
         self.gen_chunk_mesh(&chunk_index);
     }
@@ -185,11 +183,42 @@ impl<'a> World<'a> {
         
     }*/
 
-    pub unsafe fn render(&self, projection_matrix: &Matrix4<f32>, view_matrix: &Matrix4<f32>) {
-        for (_position, chunk) in &self.chunks {
-            chunk.render(projection_matrix, view_matrix, self.shader);
+    pub fn render_solid(&self, player_position: Vector3<f32>, player_direction: Vector3<f32>) {
+        unsafe{
+            gl::Enable(gl::CULL_FACE);
+            for (position, chunk) in &self.chunks {
+                //chunk.render(self.shader);
+                if let Some(m) = &chunk.solid_mesh {
+                    self.solid_shader.set_mat4(c_str!("model_matrix"), &chunk.model_matrix);
+                    m.draw();
+                }
+            }
         }
     }
+
+    pub fn render_transparent(&self) {
+        unsafe {
+            gl::Disable(gl::CULL_FACE);
+            for (position, chunk) in &self.chunks {
+                if let Some(m) = &chunk.transparent_mesh {
+                    self.transparent_shader.set_mat4(c_str!("model_matrix"), &chunk.model_matrix);
+                    m.draw();
+                }
+            }
+        }
+    }
+
+    /*pub unsafe fn render(&self, shader: &Shader) {
+        shader.set_mat4(c_str!("model_matrix"), &self.model_matrix);
+        if let Some(m) = &self.solid_mesh {
+            //gl::Enable(gl::CULL_FACE);
+            m.draw();
+        }
+        if let Some(m) = &self.transparent_mesh {
+            //gl::Disable(gl::CULL_FACE);
+            m.draw();
+        }
+    } */
 
     fn chunk_and_block_index(world_pos: &Vector3<isize>) -> (Vector3<isize>, Vector3<usize>) {
         let chunk_index = Vector3 {
@@ -306,7 +335,8 @@ impl<'a> World<'a> {
     }
 
     pub fn gen_chunk_mesh(&mut self, chunk_index: &Vector3<isize>) {
-        let mut chunk_vertices = Vec::new();
+        let mut solid_vertices = Vec::new();
+        let mut transparent_vertices = Vec::new();
     
         if let Some(current_chunk) = self.chunks.get(chunk_index) {
             for x in 0..CHUNK_SIZE {
@@ -317,8 +347,8 @@ impl<'a> World<'a> {
                             continue;
                         }
                         let cur = &crate::block::BLOCKS[i];
-                        let tex_coords:[(usize, usize);  6] = if let Some(texture_type) = &cur.texture_map {
-                            let mut coords = [(0, 0); 6];
+                        let tex_coords:[(f32, f32);  6] = if let Some(texture_type) = &cur.texture_map {
+                            let mut coords = [(0.0f32, 0.0f32); 6];
                             match texture_type {
                                 crate::block::TextureType::Single(x, y) => {
                                     for i in 0..6 {
@@ -344,81 +374,160 @@ impl<'a> World<'a> {
                             }
                             coords
                         } else {
-                            [(0, 0); 6]
+                            [(0.0, 0.0); 6]
                         };
 
                         let position = [x as f32, y as f32, z as f32];
-                        if x < 15 {
-                            if BLOCKS[current_chunk.block_at_chunk_pos(&Vector3::new(x+1, y, z))].transparent == true {
-                                push_face(&position, 0, &mut chunk_vertices, &tex_coords[0]);
-                            }
-                        } else {
-                            if let Some(adjacent_chunk) = self.chunks.get(&(*chunk_index + Vector3::new(1isize, 0, 0))) {
-                                if adjacent_chunk.block_at_chunk_pos(&Vector3::new(0, y, z)) == 0 {
-                                    push_face(&position, 0, &mut chunk_vertices, &tex_coords[0]);
+                        let cur_vertices = if cur.transparent { &mut transparent_vertices} else {&mut solid_vertices};
+                        match cur.mesh_type {
+                            MeshType::Block => {
+                                
+                                let x_right_adjacent = if x < 15 {
+                                    Some(BLOCKS[current_chunk.block_at_chunk_pos(&Vector3::new(x+1, y, z))])
+                                } else if let Some(chunk) = self.chunks.get(&(*chunk_index + Vector3::new(1isize, 0, 0))) {
+                                    Some(BLOCKS[chunk.block_at_chunk_pos(&Vector3::new(0, y, z))])
+                                } else {
+                                    None
+                                };
+                                if let Some(adjacent_block) = x_right_adjacent {
+                                    if adjacent_block.transparent && adjacent_block.id != cur.id {
+                                        push_face(&position, 0, cur_vertices, &tex_coords[0]);
+                                    }
                                 }
-                            }
-                        }
 
-                        if x > 0 {
-                            if BLOCKS[current_chunk.block_at_chunk_pos(&Vector3::new(x-1, y, z))].transparent == true {
-                                push_face(&position, 1, &mut chunk_vertices, &tex_coords[1]);
-                            }
-                        } else {
-                            if let Some(adjacent_chunk) = self.chunks.get(&(*chunk_index - Vector3::new(1isize, 0, 0))) {
-                                if adjacent_chunk.block_at_chunk_pos(&Vector3::new(CHUNK_SIZE-1, y, z)) == 0 {
-                                    push_face(&position, 1, &mut chunk_vertices, &tex_coords[1]);
+                                let x_left_adjacent = if x > 0 {
+                                    Some(BLOCKS[current_chunk.block_at_chunk_pos(&Vector3::new(x-1, y, z))])
+                                } else if let Some(chunk) = self.chunks.get(&(*chunk_index + Vector3::new(-1isize, 0, 0))) {
+                                    Some(BLOCKS[chunk.block_at_chunk_pos(&Vector3::new(CHUNK_SIZE-1, y, z))])
+                                } else {
+                                    None
+                                };
+                                if let Some(adjacent_block) = x_left_adjacent {
+                                    if adjacent_block.transparent {
+                                        push_face(&position, 1, cur_vertices, &tex_coords[1]);
+                                    }
                                 }
-                            }
-                        }
+        
+                                /*if x > 0 {
+                                    if BLOCKS[current_chunk.block_at_chunk_pos(&Vector3::new(x-1, y, z))].transparent {
+                                        push_face(&position, 1, cur_vertices, &tex_coords[1]);
+                                    }
+                                } else {
+                                    if let Some(adjacent_chunk) = self.chunks.get(&(*chunk_index + Vector3::new(-1isize, 0, 0))) {
+                                        if BLOCKS[adjacent_chunk.block_at_chunk_pos(&Vector3::new(CHUNK_SIZE-1, y, z))].transparent {
+                                            push_face(&position, 1, cur_vertices, &tex_coords[1]);
+                                        }
+                                    }
+                                }*/
 
-                        if y < 15 {
-                            if BLOCKS[current_chunk.block_at_chunk_pos(&Vector3::new(x, y+1, z))].transparent == true {
-                                push_face(&position, 2, &mut chunk_vertices, &tex_coords[2]);
-                            }
-                        } else {
-                            if let Some(adjacent_chunk) = self.chunks.get(&(*chunk_index + Vector3::new(0, 1isize, 0))) {
-                                if adjacent_chunk.block_at_chunk_pos(&Vector3::new(x, 0, z)) == 0 {
-                                    push_face(&position, 2, &mut chunk_vertices, &tex_coords[2]);
+        
+                                let y_top_adjacent = if y < 15 {
+                                    Some(BLOCKS[current_chunk.block_at_chunk_pos(&Vector3::new(x, y+1, z))])
+                                } else if let Some(chunk) = self.chunks.get(&(*chunk_index + Vector3::new(0, 1isize, 0))) {
+                                    Some(BLOCKS[chunk.block_at_chunk_pos(&Vector3::new(x,0, z))])
+                                } else {
+                                    None
+                                };
+                                if let Some(adjacent_block) = y_top_adjacent {
+                                    if adjacent_block.transparent && adjacent_block.id != cur.id {
+                                        push_face(&position, 2, cur_vertices, &tex_coords[2]);
+                                    }
                                 }
-                            }
-                        }
+                                /*if y < 15 {
+                                    if BLOCKS[current_chunk.block_at_chunk_pos(&Vector3::new(x, y+1, z))].transparent {
+                                        push_face(&position, 2, cur_vertices, &tex_coords[2]);
+                                    }
+                                } else {
+                                    if let Some(adjacent_chunk) = self.chunks.get(&(*chunk_index + Vector3::new(0, 1isize, 0))) {
+                                        if BLOCKS[adjacent_chunk.block_at_chunk_pos(&Vector3::new(x, 0, z))].transparent {
+                                            push_face(&position, 2, cur_vertices, &tex_coords[2]);
+                                        }
+                                    }
+                                }*/
+        
+                                let y_bottom_adjacent = if y > 0 {
+                                    Some(BLOCKS[current_chunk.block_at_chunk_pos(&Vector3::new(x, y-1, z))])
+                                } else if let Some(chunk) = self.chunks.get(&(*chunk_index + Vector3::new(0, -1isize, 0))) {
+                                    Some(BLOCKS[chunk.block_at_chunk_pos(&Vector3::new(x,CHUNK_SIZE-1, z))])
+                                } else {
+                                    None
+                                };
+                                if let Some(adjacent_block) = y_bottom_adjacent {
+                                    if adjacent_block.transparent {
+                                        push_face(&position, 3, cur_vertices, &tex_coords[3]);
+                                    }
+                                }
+                                /*if y > 0 {
+                                    if BLOCKS[current_chunk.block_at_chunk_pos(&Vector3::new(x, y-1, z))].transparent {
+                                        push_face(&position, 3, cur_vertices, &tex_coords[3]);
+                                    }
+                                } else {
+                                    if let Some(adjacent_chunk) = self.chunks.get(&(*chunk_index - Vector3::new(0, 1isize, 0))) {
+                                        if BLOCKS[adjacent_chunk.block_at_chunk_pos(&Vector3::new(x, CHUNK_SIZE-1, z))].transparent {
+                                            push_face(&position, 3, cur_vertices, &tex_coords[3]);
+                                        }
+                                    }
+                                }*/
 
-                        if y > 0 {
-                            if BLOCKS[current_chunk.block_at_chunk_pos(&Vector3::new(x, y-1, z))].transparent == true {
-                                push_face(&position, 3, &mut chunk_vertices, &tex_coords[3]);
-                            }
-                        } else {
-                            if let Some(adjacent_chunk) = self.chunks.get(&(*chunk_index - Vector3::new(0, 1isize, 0))) {
-                                if adjacent_chunk.block_at_chunk_pos(&Vector3::new(x, CHUNK_SIZE-1, z)) == 0 {
-                                    push_face(&position, 3, &mut chunk_vertices, &tex_coords[3]);
+                                let z_back_adjacent = if z < 15 {
+                                    Some(BLOCKS[current_chunk.block_at_chunk_pos(&Vector3::new(x, y, z+1))])
+                                } else if let Some(chunk) = self.chunks.get(&(*chunk_index + Vector3::new(0, 0, 1isize))) {
+                                    Some(BLOCKS[chunk.block_at_chunk_pos(&Vector3::new(x, y, 0))])
+                                } else {
+                                    None
+                                };
+                                if let Some(adjacent_block) = z_back_adjacent {
+                                    if adjacent_block.transparent && adjacent_block.id != cur.id {
+                                        push_face(&position, 4, cur_vertices, &tex_coords[4]);
+                                    }
                                 }
-                            }
-                        }
+        
+                                /*if z < 15 {
+                                    if BLOCKS[current_chunk.block_at_chunk_pos(&Vector3::new(x, y, z+1))].transparent {
+                                        push_face(&position, 4, cur_vertices, &tex_coords[4]);
+                                    }
+                                } else {
+                                    if let Some(adjacent_chunk) = self.chunks.get(&(*chunk_index + Vector3::new(0, 0, 1isize))) {
+                                        if BLOCKS[adjacent_chunk.block_at_chunk_pos(&Vector3::new(x, y, 0))].transparent {
+                                            push_face(&position, 4, cur_vertices, &tex_coords[4]);
+                                        }
+                                    }
+                                }*/
 
-                        if z < 15 {
-                            if BLOCKS[current_chunk.block_at_chunk_pos(&Vector3::new(x, y, z+1))].transparent == true {
-                                push_face(&position, 4, &mut chunk_vertices, &tex_coords[4]);
-                            }
-                        } else {
-                            if let Some(adjacent_chunk) = self.chunks.get(&(*chunk_index + Vector3::new(0, 0, 1isize))) {
-                                if adjacent_chunk.block_at_chunk_pos(&Vector3::new(x, y, 0)) == 0 {
-                                    push_face(&position, 4, &mut chunk_vertices, &tex_coords[4]);
-                                }
-                            }
-                        }
 
-                        if z > 0 {
-                            if BLOCKS[current_chunk.block_at_chunk_pos(&Vector3::new(x, y, z-1))].transparent == true {
-                                push_face(&position, 5, &mut chunk_vertices, &tex_coords[5]);
-                            }
-                        } else {
-                            if let Some(adjacent_chunk) = self.chunks.get(&(*chunk_index - Vector3::new(0, 0, 1isize))) {
-                                if adjacent_chunk.block_at_chunk_pos(&Vector3::new(x, y, CHUNK_SIZE-1)) == 0 {
-                                    push_face(&position, 5, &mut chunk_vertices, &tex_coords[5]);
+                                let z_front_adjacent = if z > 0 {
+                                    Some(BLOCKS[current_chunk.block_at_chunk_pos(&Vector3::new(x, y, z-1))])
+                                } else if let Some(chunk) = self.chunks.get(&(*chunk_index + Vector3::new(0, 0, -1isize))) {
+                                    Some(BLOCKS[chunk.block_at_chunk_pos(&Vector3::new(x, y, CHUNK_SIZE-1))])
+                                } else {
+                                    None
+                                };
+                                if let Some(adjacent_block) = z_front_adjacent {
+                                    if adjacent_block.transparent {
+                                        push_face(&position, 5, cur_vertices, &tex_coords[5]);
+                                    }
                                 }
+        
+                                /*if z > 0 {
+                                    if BLOCKS[current_chunk.block_at_chunk_pos(&Vector3::new(x, y, z-1))].transparent {
+                                        push_face(&position, 5,cur_vertices, &tex_coords[5]);
+                                    }
+                                } else {
+                                    if let Some(adjacent_chunk) = self.chunks.get(&(*chunk_index - Vector3::new(0, 0, 1isize))) {
+                                        if BLOCKS[adjacent_chunk.block_at_chunk_pos(&Vector3::new(x, y, CHUNK_SIZE-1))].transparent {
+                                            push_face(&position, 5, cur_vertices, &tex_coords[5]);
+                                        }
+                                    }
+                                }*/
+                            }
+                            MeshType::CrossedPlanes => {
+                                push_face(&position, 6, cur_vertices, &tex_coords[0]);
+                                //push_face(&position, 7, &mut transparent_vertices, &tex_coords[0]);
+                                push_face(&position, 8, cur_vertices, &tex_coords[0]);
+                                //push_face(&position, 9, &mut transparent_vertices, &tex_coords[0]);
                             }
                         }
+                        
                     }
                 }
             }
@@ -426,9 +535,15 @@ impl<'a> World<'a> {
             return;
         }
 
+        /*transparent_vertices.sort_by(|a, b| {
+            len(&a.position).partial_cmp(&len(&b.position)).unwrap()
+        });*/
+
         if let Some(chunk) = self.chunks.get_mut(chunk_index) {
-            let chunk_mesh = crate::mesh::Mesh::new(chunk_vertices, &self.texture, &self.shader);
-            chunk.mesh = Some(chunk_mesh);
+            let solid_mesh = crate::mesh::Mesh::new(solid_vertices, &self.texture, &self.solid_shader);
+            let transparent_mesh = crate::mesh::Mesh::new(transparent_vertices, &self.texture, &self.transparent_shader);
+            chunk.solid_mesh = Some(solid_mesh);
+            chunk.transparent_mesh = Some(transparent_mesh);
         }
     }
 }

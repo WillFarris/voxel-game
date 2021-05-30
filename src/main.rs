@@ -48,17 +48,24 @@ fn main() {
 
     gl::load_with(|symbol| window.get_proc_address(symbol) as *const _);
 
-    let world_vertex_shader_path = if cfg!(target_arch = "arm") {
+    let terrain_vertex_shader_path = if cfg!(target_arch = "arm") {
         "shaders/cube_vertex_es.glsl"
     } else {
-        "shaders/cube_vertex.glsl"
+        "shaders/terrain_vertex.glsl"
     };
-    let world_fragment_shader_path = if cfg!(target_arch = "arm") {
+    let solid_fragment_shader_path = if cfg!(target_arch = "arm") {
         "shaders/cube_fragment_es.glsl"
     } else {
-        "shaders/cube_fragment.glsl"
+        "shaders/solid_fragment.glsl"
     };
-    let world_shader = shader::Shader::new(world_vertex_shader_path, world_fragment_shader_path);
+    let transparent_fragment_shader_path = if cfg!(target_arch = "arm") {
+        "shaders/cube_fragment_es.glsl"
+    } else {
+        "shaders/transparent_fragment.glsl"
+    };
+
+    let solid_shader = shader::Shader::new(terrain_vertex_shader_path, solid_fragment_shader_path);
+    let transparent_shader = shader::Shader::new(terrain_vertex_shader_path, transparent_fragment_shader_path);
     
 
     //let mut cube1 = cube::Cube::new([-1.0, 5.0, 5.0], [0.9, 0.2, 0.2]);
@@ -66,18 +73,22 @@ fn main() {
     let texture_id = texture_from_file("terrain.png", ".");
     let seed = rand::random();
     println!("Seed: {}", seed);
-    let mut world = world::World::new(mesh::Texture{id: texture_id}, &world_shader, seed);    
+    let mut world = world::World::new(mesh::Texture{id: texture_id}, &solid_shader, &transparent_shader, seed);    
 
     let mut player = player::Player::new(Vector3::new(5.0, 25.0, 4.5), Vector3::new(1.0, 0.0, 1.0));
 
-    let sunlight_direction: Vector3<f32> = Vector3 { x: -0.701, y: 0.701, z: -0.701 };
+    let mut sunlight_direction: Vector3<f32> = Vector3 { x: -0.701, y: 0.701, z: -0.701 };
     
 
     unsafe {
         gl::Enable(gl::DEPTH_TEST);
+        
         gl::Enable(gl::CULL_FACE);
         gl::CullFace(gl::BACK);
         gl::FrontFace(gl::CW);
+
+        gl::Enable(gl::BLEND);
+        gl::BlendFunc(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA);
     }
     
     let mut previous_time = glfw.get_time();
@@ -93,6 +104,9 @@ fn main() {
         }
         //std::thread::sleep(std::time::Duration::from_nanos(11111111));
 
+        sunlight_direction.x = glfw.get_time().sin() as f32;
+        sunlight_direction.z = glfw.get_time().cos() as f32;
+
         //world.update_chunks(player.position);
         player.update(&world);
         /*if let Some((intersect, block, )) = dda(&chunk, &player.delta, &player.direction, vectormath::len(&player.delta)) {
@@ -105,16 +119,27 @@ fn main() {
             gl::ClearColor(0.1, 0.4, 0.95, 1.0);
             gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
 
-            world_shader.use_program();
+            //solid_shader.use_program();
+            //transparent_shader.use_program();
 
             let projection: Matrix4<f32> = perspective_matrix();//cgmath::perspective(cgmath::Deg(90.0), WIDTH as f32 / HEIGHT as f32, 0.1, 100.0);
             let view = player.camera.view_matrix();
             //let model = Matrix4::from_scale(1.0);
 
-            world_shader.set_mat4(c_str!("perspective_matrix"), &projection);
-            world_shader.set_mat4(c_str!("view_matrix"), &view);
-            world_shader.set_vec3(c_str!("sunlight_direction"), &sunlight_direction);
-            world.render(&projection, &view);
+            solid_shader.use_program();
+            solid_shader.set_mat4(c_str!("perspective_matrix"), &projection);
+            solid_shader.set_mat4(c_str!("view_matrix"), &view);
+            solid_shader.set_vec3(c_str!("sunlight_direction"), &sunlight_direction);
+            world.render_solid(player.position, player.camera.forward);
+            
+            transparent_shader.use_program();
+            transparent_shader.set_mat4(c_str!("perspective_matrix"), &projection);
+            transparent_shader.set_mat4(c_str!("view_matrix"), &view);
+            transparent_shader.set_vec3(c_str!("sunlight_direction"), &sunlight_direction);
+            world.render_transparent();
+
+
+            
 
             //let cursor_projection: Matrix4<f32> = perspective_matrix();//cgmath::perspective(cgmath::Deg(90.0), WIDTH as f32 / HEIGHT as f32, 0.1, 100.0);
             //let view = player.camera.view_matrix();
@@ -148,12 +173,12 @@ fn main() {
                             if action == glfw::Action::Press {
                                 if let Some((intersect_position, world_index)) = dda(&world, &player.camera.position, &player.camera.forward, 6.0) {
                                     let intersect_index = Vector3 {
-                                        x: if player.position.x > intersect_position.x { intersect_position.x.floor() } else { intersect_position.x.floor()+1.0 } as isize,
-                                        y: if player.position.y > intersect_position.y { intersect_position.y.floor() } else { intersect_position.y.floor()-1.0 } as isize,
-                                        z: if player.position.z > intersect_position.z { intersect_position.z.floor() } else { intersect_position.z.floor()+1.0 } as isize,
+                                        x: if player.position.x.floor() < intersect_position.x { intersect_position.x.floor() } else { intersect_position.x.round() } as isize,
+                                        y: if player.position.y.floor() < intersect_position.y { intersect_position.y.floor() } else { intersect_position.y.round() } as isize,
+                                        z: if player.position.z.floor() < intersect_position.z { intersect_position.z.floor() } else { intersect_position.z.round() } as isize,
                                     };
                                     //let index_diff = intersect_index - world_index;
-                                    world.place_at_global_pos(intersect_index, 4);
+                                    world.place_at_global_pos(intersect_index, 11);
                                 }
                             }
                         },

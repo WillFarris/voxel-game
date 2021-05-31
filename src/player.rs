@@ -28,96 +28,42 @@ impl Player {
 
     pub fn update(&mut self, world: &World, delta_time: f32) {
 
-        let forward = self.camera.forward;//normalize(Vector3::new(self.camera.forward.x, 0.0, self.camera.forward.z));
-        let right = self.camera.right;
+        let forward = self.camera.forward;
 
         let mut delta = delta_time * Vector3 {
             x: (self.move_speed * self.camera.right.x * self.direction.x as f32) + (self.move_speed * forward.x * self.direction.z as f32),
             y: self.move_speed * self.direction.y as f32,
             z: (self.move_speed * self.camera.right.z * self.direction.x as f32) + (self.move_speed * forward.z * self.direction.z as f32),
         };
-
-
-        /*
-        let mut collision_box = Vec::with_capacity(4);
-        collision_box.push((0.25 * right) + (0.25 * forward) + delta);
-        collision_box.push((-0.25 * right) + (0.25 * forward) + delta);
-        collision_box.push((0.25 * right) - (0.25 * forward) + delta);
-        collision_box.push((-0.25 * right) - (0.25 * forward) + delta);
-
-        for vert in collision_box {
-            let collision_check_feet = Vector3::new(
-                (self.position.x + delta.x + vert.x).floor() as isize,
-                (self.position.y + delta.y + vert.y - 0.8).floor() as isize,
-                (self.position.z + delta.z + vert.z).floor() as isize,
-            );
-
-            let collision_check_head = Vector3::new(
-                (self.position.x + delta.x + vert.x).floor() as isize,
-                (self.position.y + delta.y + vert.y + 0.8).floor() as isize,
-                (self.position.z + delta.z + vert.z).floor() as isize,
-            );
+        let world_pos = Vector3 {
+            x: (self.position.x + delta.x).floor() as isize,
+            y: (self.position.y + delta.y).floor() as isize,
+            z: (self.position.z + delta.z).floor() as isize,
+        };
+        //if world.collision_at_world_pos(world_pos) {
+        if let Some((intersect_position, world_index)) = dda(&world, &self.position, &delta, len(&delta)) {
             
-            if world.collision_at_world_pos(collision_check_feet) ||
-               world.collision_at_world_pos(collision_check_head) {
-                if let Some((global_intersect_coords, global_block_index)) = dda(&world, &(self.position + delta - 0.8 * Y_VECTOR), &vert, len(&(vert))) {
-
-                    /*if (self.position.x + delta.x).floor() as isize == global_block_index.x {
-                        delta.z = 0.0;
-                    }
-                    if (self.position.z + delta.z).floor() as isize == global_block_index.z {
-                        delta.x = 0.0;
-                    }*/
-                    //let dot_player_intersect = crate::vectormath::dot(self.position, Y_VECTOR);
-                    let block_delta = Vector3::new(
-                        (self.position.x + delta.x + vert.x).floor() - global_block_index.x as f32,
-                        (self.position.y + delta.y + vert.y - (self.height/2.0)).floor() - global_block_index.y as f32,
-                        (self.position.z + delta.z + vert.z).floor() - global_block_index.z as f32,
-                    );
-
-                    delta.x -= delta.x * (1.0 - block_delta.x);
-                    delta.y -= delta.y * (1.0 - block_delta.y);
-                    delta.z -= delta.z * (1.0 - block_delta.z);
-                    
-                    if global_intersect_coords.y < self.position.y {
-                        self.grounded = true;
-                        self.direction.y = 0.0;
-                    } else {
-                        self.grounded = false;
-                    }
-                }
-                if let Some((_global_intersect_coords, global_block_index)) = dda(&world, &(self.position + delta + 0.8 * Y_VECTOR), &vert, len(&(vert))) {
-                    /*if (self.position.x + delta.x).floor() as isize == global_block_index.x {
-                        delta.z = 0.0;
-                    }
-                    if (self.position.z + delta.z).floor() as isize == global_block_index.z {
-                        delta.x = 0.0;
-                    }*/
-                }
+            let normal = if intersect_position.x == world_index.x as f32 {
+                Vector3::new(-1.0f32, 0.0, 0.0)
+            } else if intersect_position.x-1.0 == world_index.x as f32 {
+                Vector3::new(1.0f32, 0.0, 0.0)
+            } else if intersect_position.y == world_index.y as f32 {
+                Vector3::new(0.0, -1.0, 0.0)
+            } else if intersect_position.y-1.0 == world_index.y as f32 {
+                Vector3::new(0.0, -1.0, 0.0)
+            } else if intersect_position.z == world_index.z as f32 {
+                Vector3::new(0.0, 0.0, -1.0)
+            } else if intersect_position.z-1.0 == world_index.z as f32 {
+                Vector3::new(0.0, 0.0, 1.0)
             } else {
-                self.grounded = false;
-            }
+                Vector3::new(0.0, 0.0, 0.0)
+            };
+
+            
         }
-
-        /*let grounded_check = Vector3::new(
-            self.position.x.floor() as isize,
-            (self.position.y-0.9).floor() as isize,
-            self.position.z.floor() as isize
-        );
-        if world.collision_at_world_pos(grounded_check) {
-            if let Some((global_intersect_coords, global_block_index)) = dda(&world, &(self.position - 0.8 * Y_VECTOR), &(-1.0 * Y_VECTOR), 0.0) {
-                self.position.y = global_intersect_coords.y + 0.8;
-                self.grounded = true;
-            }
-        } else {
+        else {
             self.grounded = false;
-            delta += GRAVITY;
-        }*/
-
-        if !self.grounded {
-            self.direction += GRAVITY;
-        }*/
-        
+        }
         self.position += delta;
         self.camera.translate(self.position + 0.8 * Y_VECTOR);
     }

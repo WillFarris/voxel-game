@@ -188,28 +188,22 @@ fn main() {
                                 if let Some((intersect_position, world_index)) = dda(&world, &player.camera.position, &player.camera.forward, 6.0) {
                                     let place_index = Vector3 {
                                         x: if intersect_position.x == world_index.x as f32 {
-                                            println!("Hit on negative x-face");
                                             world_index.x - 1
                                         } else if intersect_position.x-1.0 == world_index.x as f32 {
-                                            println!("Hit on positive x-face");
                                             world_index.x + 1
                                         } else {
                                             world_index.x
                                         },
                                         y: if intersect_position.y== world_index.y as f32 {
-                                            println!("Hit on negative y-face");
                                             world_index.y - 1
                                         } else if intersect_position.y-1.0 == world_index.y as f32 {
-                                            println!("Hit on positive y-face");
                                             world_index.y + 1
                                         } else {
                                             world_index.y
                                         },
                                         z: if intersect_position.z == world_index.z as f32 {
-                                            println!("Hit on negative z-face");
                                             world_index.z - 1
                                         } else if intersect_position.z-1.0 == world_index.z as f32 {
-                                            println!("Hit on positive z-face");
                                             world_index.z + 1
                                         } else {
                                             world_index.z

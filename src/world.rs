@@ -124,6 +124,8 @@ impl<'a> World<'a> {
                                 chunk.blocks[block_x][block_y+1][block_z] = 7;
                             } else if rand::random::<usize>()%75 < 1 {
                                 chunk.blocks[block_x][block_y+1][block_z] = 10;
+                            }  else if rand::random::<usize>()%200 < 1 {
+                                chunk.blocks[block_x][block_y+1][block_z] = 13;
                             }
                         } else if global_y < (surface_y/2.0).floor() {
                             chunk.blocks[block_x][block_y][block_z] = 1;

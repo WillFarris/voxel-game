@@ -48,36 +48,32 @@ fn main() {
 
     gl::load_with(|symbol| window.get_proc_address(symbol) as *const _);
 
-    let terrain_vertex_shader_path = if cfg!(target_arch = "arm") {
-        "shaders/terrain_vertex_es.glsl"
+    let block_vertex_shader_path = if cfg!(target_arch = "arm") {
+        "shaders/block_vertex_es.glsl"
     } else {
-        "shaders/terrain_vertex.glsl"
-    };
-    let leaves_vertex_shader_path = if cfg!(target_arch = "arm") {
-        "shaders/leaves_vertex_es.glsl"
-    } else {
-        "shaders/leaves_vertex.glsl"
-    };
-    let solid_fragment_shader_path = if cfg!(target_arch = "arm") {
-        "shaders/solid_fragment_es.glsl"
-    } else {
-        "shaders/solid_fragment.glsl"
-    };
-    let transparent_fragment_shader_path = if cfg!(target_arch = "arm") {
-        "shaders/transparent_fragment_es.glsl"
-    } else {
-        "shaders/transparent_fragment.glsl"
+        "shaders/block_vertex.glsl"
     };
     let grass_vertex_shader_path = if cfg!(target_arch = "arm") {
         "shaders/grass_vertex_es.glsl"
     } else {
         "shaders/grass_vertex.glsl"
     };
+    let leaves_vertex_shader_path = if cfg!(target_arch = "arm") {
+        "shaders/leaves_vertex_es.glsl"
+    } else {
+        "shaders/leaves_vertex.glsl"
+    };
+
+    let block_fragment_shader_path = if cfg!(target_arch = "arm") {
+        "shaders/block_fragment_es.glsl"
+    } else {
+        "shaders/block_fragment.glsl"
+    };
 
     //let solid_shader = shader::Shader::new(terrain_vertex_shader_path, solid_fragment_shader_path);
-    let block_shader = shader::Shader::new(terrain_vertex_shader_path, transparent_fragment_shader_path);
-    let grass_shader = shader::Shader::new(grass_vertex_shader_path, transparent_fragment_shader_path);
-    let leaves_shader = shader::Shader::new(leaves_vertex_shader_path, transparent_fragment_shader_path);
+    let block_shader = shader::Shader::new(block_vertex_shader_path, block_fragment_shader_path);
+    let grass_shader = shader::Shader::new(grass_vertex_shader_path, block_fragment_shader_path);
+    let leaves_shader = shader::Shader::new(leaves_vertex_shader_path, block_fragment_shader_path);
 
     //let mut cube1 = cube::Cube::new([-1.0, 5.0, 5.0], [0.9, 0.2, 0.2]);
 

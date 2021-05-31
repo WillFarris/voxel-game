@@ -53,6 +53,11 @@ fn main() {
     } else {
         "shaders/terrain_vertex.glsl"
     };
+    let leaves_vertex_shader_path = if cfg!(target_arch = "arm") {
+        "shaders/leaves_vertex_es.glsl"
+    } else {
+        "shaders/leaves_vertex.glsl"
+    };
     let solid_fragment_shader_path = if cfg!(target_arch = "arm") {
         "shaders/solid_fragment_es.glsl"
     } else {
@@ -63,19 +68,25 @@ fn main() {
     } else {
         "shaders/transparent_fragment.glsl"
     };
+    let grass_vertex_shader_path = if cfg!(target_arch = "arm") {
+        "shaders/grass_vertex_es.glsl"
+    } else {
+        "shaders/grass_vertex.glsl"
+    };
 
-    let solid_shader = shader::Shader::new(terrain_vertex_shader_path, solid_fragment_shader_path);
-    let transparent_shader = shader::Shader::new(terrain_vertex_shader_path, transparent_fragment_shader_path);
-    
+    //let solid_shader = shader::Shader::new(terrain_vertex_shader_path, solid_fragment_shader_path);
+    let block_shader = shader::Shader::new(terrain_vertex_shader_path, transparent_fragment_shader_path);
+    let grass_shader = shader::Shader::new(grass_vertex_shader_path, transparent_fragment_shader_path);
+    let leaves_shader = shader::Shader::new(leaves_vertex_shader_path, transparent_fragment_shader_path);
 
     //let mut cube1 = cube::Cube::new([-1.0, 5.0, 5.0], [0.9, 0.2, 0.2]);
 
     let texture_id = texture_from_file("terrain.png", ".");
     let seed = rand::random();
     println!("Seed: {}", seed);
-    let mut world = world::World::new(mesh::Texture{id: texture_id}, &solid_shader, &transparent_shader, seed);    
+    let mut world = world::World::new(mesh::Texture{id: texture_id}, &block_shader, &grass_shader, &leaves_shader, seed);
 
-    let mut player = player::Player::new(Vector3::new(5.0, 25.0, 4.5), Vector3::new(1.0, 0.0, 1.0));
+    let mut player = player::Player::new(Vector3::new(5.0, 15.0, 4.5), Vector3::new(1.0, 0.0, 1.0));
 
     let mut sunlight_direction: Vector3<f32> = Vector3 { x: -0.701, y: 0.701, z: -0.701 };
     
@@ -91,11 +102,14 @@ fn main() {
         gl::BlendFunc(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA);
     }
     
-    let mut previous_time = glfw.get_time();
+    let mut start_time = glfw.get_time();
+    let mut previous_time = start_time;
     let mut frame_count = 0;
+    let mut current_block = 4;
     while !window.should_close() {
         let current_time = glfw.get_time();
         let delta_time = (current_time - previous_time) as f32;
+        let elapsed_time = current_time - start_time;
         previous_time = current_time;
         //std::thread::sleep(std::time::Duration::from_nanos(11111111));
 
@@ -120,20 +134,26 @@ fn main() {
             let view = player.camera.view_matrix();
             //let model = Matrix4::from_scale(1.0);
 
-            solid_shader.use_program();
-            solid_shader.set_mat4(c_str!("perspective_matrix"), &projection);
-            solid_shader.set_mat4(c_str!("view_matrix"), &view);
-            solid_shader.set_vec3(c_str!("sunlight_direction"), &sunlight_direction);
+            block_shader.use_program();
+            block_shader.set_mat4(c_str!("perspective_matrix"), &projection);
+            block_shader.set_mat4(c_str!("view_matrix"), &view);
+            block_shader.set_vec3(c_str!("sunlight_direction"), &sunlight_direction);
+            block_shader.set_float(c_str!("time"), elapsed_time as f32);
             world.render_solid(player.position, player.camera.forward);
             
-            transparent_shader.use_program();
-            transparent_shader.set_mat4(c_str!("perspective_matrix"), &projection);
-            transparent_shader.set_mat4(c_str!("view_matrix"), &view);
-            transparent_shader.set_vec3(c_str!("sunlight_direction"), &sunlight_direction);
-            world.render_transparent();
+            grass_shader.use_program();
+            grass_shader.set_mat4(c_str!("perspective_matrix"), &projection);
+            grass_shader.set_mat4(c_str!("view_matrix"), &view);
+            grass_shader.set_vec3(c_str!("sunlight_direction"), &sunlight_direction);
+            grass_shader.set_float(c_str!("time"), elapsed_time as f32);
+            world.render_grass();
 
-
-            
+            leaves_shader.use_program();
+            leaves_shader.set_mat4(c_str!("perspective_matrix"), &projection);
+            leaves_shader.set_mat4(c_str!("view_matrix"), &view);
+            leaves_shader.set_vec3(c_str!("sunlight_direction"), &sunlight_direction);
+            leaves_shader.set_float(c_str!("time"), elapsed_time as f32);
+            world.render_leaves();
 
             //let cursor_projection: Matrix4<f32> = perspective_matrix();//cgmath::perspective(cgmath::Deg(90.0), WIDTH as f32 / HEIGHT as f32, 0.1, 100.0);
             //let view = player.camera.view_matrix();
@@ -166,13 +186,37 @@ fn main() {
                         glfw::MouseButton::Button2 => {
                             if action == glfw::Action::Press {
                                 if let Some((intersect_position, world_index)) = dda(&world, &player.camera.position, &player.camera.forward, 6.0) {
-                                    let intersect_index = Vector3 {
-                                        x: if player.position.x.floor() < intersect_position.x { intersect_position.x.floor() } else { intersect_position.x.round() } as isize,
-                                        y: if player.position.y.floor() < intersect_position.y { intersect_position.y.floor() } else { intersect_position.y.round() } as isize,
-                                        z: if player.position.z.floor() < intersect_position.z { intersect_position.z.floor() } else { intersect_position.z.round() } as isize,
+                                    let place_index = Vector3 {
+                                        x: if intersect_position.x == world_index.x as f32 {
+                                            println!("Hit on negative x-face");
+                                            world_index.x - 1
+                                        } else if intersect_position.x-1.0 == world_index.x as f32 {
+                                            println!("Hit on positive x-face");
+                                            world_index.x + 1
+                                        } else {
+                                            world_index.x
+                                        },
+                                        y: if intersect_position.y== world_index.y as f32 {
+                                            println!("Hit on negative y-face");
+                                            world_index.y - 1
+                                        } else if intersect_position.y-1.0 == world_index.y as f32 {
+                                            println!("Hit on positive y-face");
+                                            world_index.y + 1
+                                        } else {
+                                            world_index.y
+                                        },
+                                        z: if intersect_position.z == world_index.z as f32 {
+                                            println!("Hit on negative z-face");
+                                            world_index.z - 1
+                                        } else if intersect_position.z-1.0 == world_index.z as f32 {
+                                            println!("Hit on positive z-face");
+                                            world_index.z + 1
+                                        } else {
+                                            world_index.z
+                                        },
                                     };
                                     //let index_diff = intersect_index - world_index;
-                                    world.place_at_global_pos(intersect_index, if rand::random() { 12 } else { 7 });
+                                    world.place_at_global_pos(place_index, current_block);
                                     //world.place_tree(world_index);
                                 }
                             }
@@ -188,6 +232,8 @@ fn main() {
                     glfw::Key::A =>  { if action == glfw::Action::Press { player.move_direction(Vector3::new(-1.0, 0.0, 0.0)) } else if action == glfw::Action::Release { player.stop_move_direction(Vector3::new(-1.0, 0.0, 0.0)) } },
                     glfw::Key::Space =>  { if action == glfw::Action::Press { player.move_direction(Vector3::new(0.0, 1.0, 0.0)) } else if action == glfw::Action::Release { player.stop_move_direction(Vector3::new(0.0, 1.0, 0.0)) } },
                     glfw::Key::LeftShift =>  { if action == glfw::Action::Press { player.move_direction(Vector3::new(0.0, -1.0, 0.0)) } else if action == glfw::Action::Release { player.stop_move_direction(Vector3::new(0.0, -1.0, 0.0)) } },
+                    glfw::Key::Kp1 => {current_block = 5;}
+                    
                     _ => {}
                 },
                 _ => {}

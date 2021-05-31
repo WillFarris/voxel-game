@@ -94,6 +94,12 @@ impl Shader {
         }
     }
 
+    pub fn set_float(&self, name: &CStr, float: f32) {
+        unsafe {
+            gl::Uniform1f(gl::GetUniformLocation(self.id, name.as_ptr()), float);
+        }
+    }
+
     pub fn use_program(&self) {
         unsafe {
             gl::UseProgram(self.id);

@@ -14,19 +14,21 @@ pub const CHUNK_SIZE: usize = 16;
 
 pub struct Chunk {
     blocks: [[[usize; CHUNK_SIZE]; CHUNK_SIZE]; CHUNK_SIZE],
-    solid_mesh: Option<Mesh>,
-    transparent_mesh: Option<Mesh>,
+    block_mesh: Option<Mesh>,
+    grass_mesh: Option<Mesh>,
+    leaves_mesh: Option<Mesh>,
     model_matrix: Matrix4<f32>,
     texture: Texture,
 }
 
 impl Chunk {
-    pub fn from_blocks(blocks: [[[usize; CHUNK_SIZE]; CHUNK_SIZE]; CHUNK_SIZE], position: Vector3<isize>, solid_mesh: Option<Mesh>, transparent_mesh: Option<Mesh>, texture_id: u32) -> Self {
+    pub fn from_blocks(blocks: [[[usize; CHUNK_SIZE]; CHUNK_SIZE]; CHUNK_SIZE], position: Vector3<isize>, texture_id: u32) -> Self {
         let texture = Texture {id: texture_id};
         Self {
             blocks,
-            solid_mesh,
-            transparent_mesh,
+            block_mesh: None,
+            grass_mesh: None,
+            leaves_mesh: None,
             model_matrix: Matrix4::from_translation(Vector3::new(position.x as f32, position.y as f32, position.z as f32)),
             texture,
         }
@@ -41,16 +43,19 @@ pub struct World<'a> {
     pub chunks: HashMap<Vector3<isize>, Chunk>,
     seed: u32,
     noise_offset: Vector2<f64>,
+    noise_scale: f64,
     perlin: Perlin,
     texture: Texture,
-    solid_shader: &'a Shader,
-    transparent_shader: &'a Shader,
+    block_shader: &'a Shader,
+    grass_shader: &'a Shader,
+    leaves_shader: &'a Shader,
 }
 
 impl<'a> World<'a> {
-    pub fn new(texture: Texture, solid_shader: &'a Shader, transparent_shader: &'a Shader, seed: u32) -> Self {
+    pub fn new(texture: Texture, block_shader: &'a Shader, grass_shader: &'a Shader, leaves_shader: &'a Shader, seed: u32) -> Self {
         let chunks = HashMap::new();
         let perlin = Perlin::new();
+        let noise_scale = 0.02;
         let noise_offset = Vector2::new(
             1_000_000.0 * rand::random::<f64>() + 3_141_592.0,
             1_000_000.0 * rand::random::<f64>() + 3_141_592.0,
@@ -61,10 +66,12 @@ impl<'a> World<'a> {
             chunks,
             seed,
             noise_offset,
+            noise_scale,
             perlin,
             texture,
-            solid_shader,
-            transparent_shader,
+            block_shader,
+            grass_shader,
+            leaves_shader,
         };
         
         let chunk_radius: isize = 5;
@@ -73,7 +80,7 @@ impl<'a> World<'a> {
                 for chunk_z in -chunk_radius..chunk_radius {
                     let chunk_index = Vector3::new(chunk_x, chunk_y, chunk_z);
                     let chunk_data: [[[usize; CHUNK_SIZE]; CHUNK_SIZE]; CHUNK_SIZE] = [[[0; CHUNK_SIZE]; CHUNK_SIZE]; CHUNK_SIZE];
-                    let mut cur_chunk = Chunk::from_blocks(chunk_data, 16 * chunk_index, None, None, world.texture.id);
+                    let mut cur_chunk = Chunk::from_blocks(chunk_data, 16 * chunk_index, world.texture.id);
                     
                     world.gen_terrain(&chunk_index, &mut cur_chunk);
                     //world.gen_caves(&chunk_index, &mut cur_chunk);
@@ -95,7 +102,7 @@ impl<'a> World<'a> {
     }
 
     fn gen_terrain(&mut self, chunk_index: &Vector3<isize>, chunk: &mut Chunk) {
-        let noise_scale = 0.02;
+        //let noise_scale = 0.02;
 
         //println!("Generating terrain...");
 
@@ -105,10 +112,7 @@ impl<'a> World<'a> {
                     let global_x = (block_x as isize + (chunk_index.x * CHUNK_SIZE as isize)) as f64;
                     let global_y = (block_y as isize + (chunk_index.y * CHUNK_SIZE as isize)) as f64;
                     let global_z = (block_z as isize + (chunk_index.z * CHUNK_SIZE as isize)) as f64;
-                    let surface_y = 
-                            5.0 * self.perlin.get([noise_scale * global_x + self.noise_offset.x, noise_scale * global_z + self.noise_offset.y])
-                            //+ (50.0 * self.perlin.get([0.1 * noise_scale * self.noise_offset.x - 100.0, self.noise_offset.y - 44310.0]) + 3.0)
-                            + 5.1;
+                    let surface_y = self.surface_noise(global_x, global_z);
                     if global_y < surface_y {
                         if global_y == surface_y.floor() {
                             chunk.blocks[block_x][block_y][block_z] = 2;
@@ -153,6 +157,7 @@ impl<'a> World<'a> {
         }
     }
 
+
     pub fn place_tree(&mut self, block_index: Vector3<usize>, chunk: &mut Chunk) {
 
         if block_index.x == 0 || block_index.x == CHUNK_SIZE-1 || block_index.z == 0 || block_index.z == CHUNK_SIZE-1 {
@@ -176,9 +181,15 @@ impl<'a> World<'a> {
     }
 
     pub fn chunk_from_block_array(&mut self, chunk_index: Vector3<isize>, blocks: [[[usize; CHUNK_SIZE]; CHUNK_SIZE]; CHUNK_SIZE]) {
-        let new_chunk = Chunk::from_blocks(blocks, 16 * chunk_index, None, None, self.texture.id);
+        let new_chunk = Chunk::from_blocks(blocks, 16 * chunk_index, self.texture.id);
         self.chunks.insert(chunk_index, new_chunk);
         self.gen_chunk_mesh(&chunk_index);
+    }
+
+    fn surface_noise(&self, global_x: f64, global_z: f64) -> f64 {
+        5.0 * self.perlin.get([self.noise_scale * global_x + self.noise_offset.x, self.noise_scale * global_z + self.noise_offset.y])
+                            //+ (50.0 * self.perlin.get([0.1 * noise_scale * self.noise_offset.x - 100.0, self.noise_offset.y - 44310.0]) + 3.0)
+                            + 5.1
     }
 
     /*pub fn update_chunks(&mut self, player_position_global: Vector3<f32>) {
@@ -219,20 +230,32 @@ impl<'a> World<'a> {
             gl::Enable(gl::CULL_FACE);
             for (position, chunk) in &self.chunks {
                 //chunk.render(self.shader);
-                if let Some(m) = &chunk.solid_mesh {
-                    self.solid_shader.set_mat4(c_str!("model_matrix"), &chunk.model_matrix);
+                if let Some(m) = &chunk.block_mesh {
+                    self.block_shader.set_mat4(c_str!("model_matrix"), &chunk.model_matrix);
                     m.draw();
                 }
             }
         }
     }
 
-    pub fn render_transparent(&self) {
+    pub fn render_grass(&self) {
         unsafe {
             gl::Disable(gl::CULL_FACE);
             for (position, chunk) in &self.chunks {
-                if let Some(m) = &chunk.transparent_mesh {
-                    self.transparent_shader.set_mat4(c_str!("model_matrix"), &chunk.model_matrix);
+                if let Some(m) = &chunk.grass_mesh {
+                    self.grass_shader.set_mat4(c_str!("model_matrix"), &chunk.model_matrix);
+                    m.draw();
+                }
+            }
+        }
+    }
+
+    pub fn render_leaves(&self) {
+        unsafe {
+            gl::Disable(gl::CULL_FACE);
+            for (position, chunk) in &self.chunks {
+                if let Some(m) = &chunk.leaves_mesh {
+                    self.leaves_shader.set_mat4(c_str!("model_matrix"), &chunk.model_matrix);
                     m.draw();
                 }
             }
@@ -366,9 +389,10 @@ impl<'a> World<'a> {
     }
 
     pub fn gen_chunk_mesh(&mut self, chunk_index: &Vector3<isize>) {
-        let mut solid_vertices = Vec::new();
-        let mut transparent_vertices = Vec::new();
-    
+        let mut block_vertices = Vec::new();
+        let mut grass_vertices = Vec::new();
+        let mut leaves_vertices = Vec::new();
+
         if let Some(current_chunk) = self.chunks.get(chunk_index) {
             for x in 0..CHUNK_SIZE {
                 for y in 0..CHUNK_SIZE {
@@ -409,7 +433,18 @@ impl<'a> World<'a> {
                         };
 
                         let position = [x as f32, y as f32, z as f32];
-                        let cur_vertices = if cur.transparent { &mut transparent_vertices} else {&mut solid_vertices};
+                        let cur_vertices = match cur.block_type {
+                            block::BlockType::Block => {
+                                &mut block_vertices
+                            },
+                            block::BlockType::Grass => {
+                                &mut grass_vertices
+                            },
+                            block::BlockType::Leaves => {
+                                &mut leaves_vertices
+                            }
+                            _ => &mut block_vertices,
+                        };
                         match cur.mesh_type {
                             MeshType::Block => {
                                 
@@ -513,10 +548,12 @@ impl<'a> World<'a> {
         });*/
 
         if let Some(chunk) = self.chunks.get_mut(chunk_index) {
-            let solid_mesh = crate::mesh::Mesh::new(solid_vertices, &self.texture, &self.solid_shader);
-            let transparent_mesh = crate::mesh::Mesh::new(transparent_vertices, &self.texture, &self.transparent_shader);
-            chunk.solid_mesh = Some(solid_mesh);
-            chunk.transparent_mesh = Some(transparent_mesh);
+            let solid_mesh = crate::mesh::Mesh::new(block_vertices, &self.texture, &self.block_shader);
+            let grass_mesh = crate::mesh::Mesh::new(grass_vertices, &self.texture, &self.grass_shader);
+            let leaves_mesh = crate::mesh::Mesh::new(leaves_vertices, &self.texture, &self.leaves_shader);
+            chunk.block_mesh = Some(solid_mesh);
+            chunk.grass_mesh = Some(grass_mesh);
+            chunk.leaves_mesh = Some(leaves_mesh);
         }
     }
 }

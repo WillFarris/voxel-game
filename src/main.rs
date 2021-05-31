@@ -24,8 +24,8 @@ extern crate image;
 extern crate glfw;
 extern crate gl;
 
-const WIDTH: u32 = 1920;
-const HEIGHT: u32 = 1080;
+const WIDTH: u32 = 800;
+const HEIGHT: u32 = 600;
 
 fn main() {
 

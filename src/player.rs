@@ -1,6 +1,6 @@
 use cgmath::Vector3;
 
-use crate::{camera::Camera, vectormath::{Y_VECTOR, dda, len, normalize, normalize_inplace}, world::World};
+use crate::{block::BLOCKS, camera::Camera, vectormath::{Y_VECTOR, dda, len, normalize, normalize_inplace}, world::World};
 
 
 const GRAVITY: Vector3<f32> = Vector3 {x: 0.0, y: -0.05, z: 0.0};
@@ -28,44 +28,41 @@ impl Player {
 
     pub fn update(&mut self, world: &World, delta_time: f32) {
 
-        let forward = self.camera.forward;
+        let radius = 0.4;
 
-        let mut delta = delta_time * Vector3 {
+        let forward = self.camera.forward;
+        let delta = delta_time * Vector3 {
             x: (self.move_speed * self.camera.right.x * self.direction.x as f32) + (self.move_speed * forward.x * self.direction.z as f32),
             y: self.move_speed * self.direction.y as f32,
             z: (self.move_speed * self.camera.right.z * self.direction.x as f32) + (self.move_speed * forward.z * self.direction.z as f32),
         };
-        let world_pos = Vector3 {
-            x: (self.position.x + delta.x).floor() as isize,
-            y: (self.position.y + delta.y).floor() as isize,
-            z: (self.position.z + delta.z).floor() as isize,
-        };
-        //if world.collision_at_world_pos(world_pos) {
-        if let Some((intersect_position, world_index)) = dda(&world, &self.position, &delta, len(&delta)) {
-            
-            let normal = if intersect_position.x == world_index.x as f32 {
-                Vector3::new(-1.0f32, 0.0, 0.0)
-            } else if intersect_position.x-1.0 == world_index.x as f32 {
-                Vector3::new(1.0f32, 0.0, 0.0)
-            } else if intersect_position.y == world_index.y as f32 {
-                Vector3::new(0.0, -1.0, 0.0)
-            } else if intersect_position.y-1.0 == world_index.y as f32 {
-                Vector3::new(0.0, -1.0, 0.0)
-            } else if intersect_position.z == world_index.z as f32 {
-                Vector3::new(0.0, 0.0, -1.0)
-            } else if intersect_position.z-1.0 == world_index.z as f32 {
-                Vector3::new(0.0, 0.0, 1.0)
-            } else {
-                Vector3::new(0.0, 0.0, 0.0)
-            };
 
-            
+        let mut potential_position = self.position + delta;
+        for block_x in (self.position.x.floor() as isize - 1) ..= (self.position.x.floor() as isize + 1) {
+            for block_y in (self.position.y.floor() as isize - 1) ..= (self.position.y.floor() as isize + 1) {
+                for block_z in (self.position.z.floor() as isize - 1) ..= (self.position.z.floor() as isize + 1) {
+                    if !BLOCKS[world.block_at_global_pos(Vector3::new(block_x, block_y, block_z))].solid {
+                        continue;
+                    }
+
+                    let nearest_point = Vector3 {
+                        x: (block_x as f32).max(potential_position.x.min(block_x as f32 + 1.0)),
+                        y: (block_y as f32).max(potential_position.y.min(block_y as f32 + 1.0)),
+                        z: (block_z as f32).max(potential_position.z.min(block_z as f32 + 1.0)),
+                    };
+
+                    let ray_to_nearest = nearest_point - potential_position;
+                    let mut overlap = radius - len(&ray_to_nearest);
+                    if overlap.is_nan() { overlap = 0.0; }
+
+                    if overlap > 0.0 {
+                        potential_position = potential_position - normalize(&ray_to_nearest) * overlap;
+                    }
+                }
+            }   
         }
-        else {
-            self.grounded = false;
-        }
-        self.position += delta;
-        self.camera.translate(self.position + 0.8 * Y_VECTOR);
+        self.position = potential_position;
+        self.camera.translate(self.position);
     }
 
     pub fn move_direction(&mut self, direction: Vector3<f32>) {

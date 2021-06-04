@@ -9,6 +9,7 @@ mod shader;
 mod macros;
 mod player;
 mod world;
+mod collision;
 
 use camera::*;
 use cgmath::{Matrix4, Vector3};

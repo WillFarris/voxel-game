@@ -1,6 +1,6 @@
 use cgmath::Vector3;
 
-use crate::{block::BLOCKS, camera::Camera, vectormath::{Y_VECTOR, dda, len, normalize, normalize_inplace}, world::World};
+use crate::{block::BLOCKS, camera::Camera, collision, vectormath::{Y_VECTOR, dda, len, normalize, normalize_inplace}, world::World};
 
 
 const GRAVITY: Vector3<f32> = Vector3 {x: 0.0, y: -0.05, z: 0.0};
@@ -37,7 +37,7 @@ impl Player {
             z: (self.move_speed * self.camera.right.z * self.direction.x as f32) + (self.move_speed * forward.z * self.direction.z as f32),
         };
 
-        let mut potential_position = self.position + delta;
+        /*let mut potential_position = self.position + delta;
         for block_x in (self.position.x.floor() as isize - 1) ..= (self.position.x.floor() as isize + 1) {
             for block_y in (self.position.y.floor() as isize - 1) ..= (self.position.y.floor() as isize + 1) {
                 for block_z in (self.position.z.floor() as isize - 1) ..= (self.position.z.floor() as isize + 1) {
@@ -61,8 +61,45 @@ impl Player {
                 }
             }   
         }
+        self.position = potential_position;*/
+
+        let collision_box_dimensions = (0.25, 1.6);
+        
+        let mut potential_position = self.position + delta;
+
+        let player_bounding_box = crate::collision::Rect3 {
+            pos: Vector3::new(
+                potential_position.x - (collision_box_dimensions.0/2.0),
+                potential_position.y - (collision_box_dimensions.1/2.0),
+                potential_position.z - (collision_box_dimensions.0/2.0)),
+            size: Vector3::new(
+                collision_box_dimensions.0,
+                collision_box_dimensions.1,
+                collision_box_dimensions.0
+            )
+        };
+        for block_x in (self.position.x.floor() as isize - 1) ..= (self.position.x.floor() as isize + 1) {
+            for block_y in (self.position.y.floor() as isize - 1) ..= (self.position.y.floor() as isize + 2) {
+                for block_z in (self.position.z.floor() as isize - 1) ..= (self.position.z.floor() as isize + 1) {
+                    if !BLOCKS[world.block_at_global_pos(Vector3::new(block_x, block_y, block_z))].solid {
+                        continue;
+                    }
+                    
+                    let block_bounding_box = crate::collision::Rect3 {
+                        pos: Vector3::new(block_x as f32, block_y as f32, block_z as f32),
+                        size: Vector3::new(1.0, 1.0, 1.0)
+                    };
+
+                    if crate::collision::rect_vs_rect(&player_bounding_box, &block_bounding_box) {
+                        println!("Collision!");
+                        potential_position = self.position;
+                    }
+                }
+            }
+        }
+
         self.position = potential_position;
-        self.camera.translate(self.position);
+        self.camera.translate(self.position + 0.8 * Y_VECTOR);
     }
 
     pub fn move_direction(&mut self, direction: Vector3<f32>) {

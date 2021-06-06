@@ -28,11 +28,8 @@ impl Player {
 
     pub fn update(&mut self, world: &World, delta_time: f32) {
 
-        if !BLOCKS[world.block_at_global_pos(Vector3::new(
-            self.position.x.floor() as isize,
-            self.position.y.floor() as isize - 1,
-            self.position.z.floor() as isize))].solid {
-            self.grounded = false;
+        if !self.grounded {
+            self.direction.y -= 0.05;
         }
 
 
@@ -153,6 +150,16 @@ impl Player {
                     }
                 }
             }
+        }
+
+        if !BLOCKS[world.block_at_global_pos(Vector3::new(
+            self.position.x.floor() as isize,
+            (self.position.y-0.01).floor() as isize,
+            self.position.z.floor() as isize))].solid {
+            self.grounded = false;
+        } else {
+            self.direction.y = 0.0;
+            self.grounded = true;
         }
 
         self.camera.translate(self.position + self.height * Y_VECTOR);

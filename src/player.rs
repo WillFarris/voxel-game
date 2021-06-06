@@ -168,10 +168,10 @@ impl Player {
     pub fn move_direction(&mut self, direction: Vector3<f32>) {
         self.direction.x += direction.x;
         self.direction.z += direction.z;
-        //if self.grounded {
+        if self.grounded {
             self.direction.y += direction.y;
             //self.grounded = false;
-        //}
+        }
     }
 
     pub fn stop_move_direction(&mut self, direction: Vector3<f32>) {

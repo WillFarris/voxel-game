@@ -3,7 +3,7 @@ use cgmath::Vector3;
 use crate::{block::{self, BLOCKS}, camera::Camera, collision::{self, rect_vs_rect}, vectormath::{Y_VECTOR, dda, len, normalize, normalize_inplace}, world::World};
 
 
-const GRAVITY: Vector3<f32> = Vector3 {x: 0.0, y: -0.05, z: 0.0};
+const GRAVITY: Vector3<f32> = Vector3 {x: 0.0, y: -0.09, z: 0.0};
 
 pub(crate) struct Player {
     pub camera: Camera,
@@ -28,9 +28,13 @@ impl Player {
 
     pub fn update(&mut self, world: &World, delta_time: f32) {
 
-        if !self.grounded {
-            self.direction.y -= 0.05;
+        if !BLOCKS[world.block_at_global_pos(Vector3::new(
+            self.position.x.floor() as isize,
+            self.position.y.floor() as isize - 1,
+            self.position.z.floor() as isize))].solid {
+            self.grounded = false;
         }
+
 
         let forward = normalize(&Vector3::new(self.camera.forward.x, 0.0, self.camera.forward.z));
         let delta = delta_time * Vector3 {
@@ -72,13 +76,14 @@ impl Player {
                         };
                         self.position.x += x_overlap;
                         player_bounding_box.pos.x += x_overlap;
+                        println!("x: ({}, {}, {})", block_x, block_y, block_z);
                     }
                 }
             }
         }
 
         self.position.y += delta.y;
-        let mut player_bounding_box = crate::collision::Rect3 {
+        player_bounding_box = crate::collision::Rect3 {
             pos: Vector3::new(
                 self.position.x - (collision_box_dimensions.0/2.0),
                 self.position.y - (collision_box_dimensions.1/2.0),
@@ -106,22 +111,16 @@ impl Player {
                             -1.0 * (player_bounding_box.pos.y + player_bounding_box.size.y - block_bounding_box.pos.y)
                         };
 
-                        if (block_y as f32) < self.position.y {
-                            self.direction.y = 0.0;
-                            self.grounded = true;
-                        }
-
                         self.position.y += y_overlap;
                         player_bounding_box.pos.y += y_overlap;
-
-                        
+                        println!("y: ({}, {}, {})", block_x, block_y, block_z);
                     }
                 }
             }
         }
 
         self.position.z += delta.z;
-        let mut player_bounding_box = crate::collision::Rect3 {
+        player_bounding_box = crate::collision::Rect3 {
             pos: Vector3::new(
                 self.position.x - (collision_box_dimensions.0/2.0),
                 self.position.y - (collision_box_dimensions.1/2.0),
@@ -150,6 +149,7 @@ impl Player {
                         };
                         self.position.z += z_overlap;
                         player_bounding_box.pos.z += z_overlap;
+                        println!("z: ({}, {}, {})", block_x, block_y, block_z);
                     }
                 }
             }
@@ -161,10 +161,10 @@ impl Player {
     pub fn move_direction(&mut self, direction: Vector3<f32>) {
         self.direction.x += direction.x;
         self.direction.z += direction.z;
-        if self.grounded {
+        //if self.grounded {
             self.direction.y += direction.y;
-            self.grounded = false;
-        }
+            //self.grounded = false;
+        //}
     }
 
     pub fn stop_move_direction(&mut self, direction: Vector3<f32>) {

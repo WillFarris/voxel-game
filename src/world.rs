@@ -166,6 +166,7 @@ impl<'a> World<'a> {
             return;
         }
         
+        chunk.blocks[block_index.x][block_index.y][block_index.z] = 3;
         for x in block_index.x-1..=block_index.x+1 {
             for z in block_index.z-1..=block_index.z+1 {
                 for y in block_index.y+3..block_index.y+6 {
@@ -382,8 +383,9 @@ impl<'a> World<'a> {
         let (chunk_index, block_index) = World::chunk_and_block_index(&world_pos);
         if let Some(chunk) = self.chunks.get(&chunk_index) {
             return chunk.block_at_chunk_pos(&block_index);
+        } else {
+            0
         }
-        0
     }
 
     pub fn collision_at_world_pos(&self, world_pos: Vector3<isize>) -> bool {

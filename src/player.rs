@@ -44,13 +44,13 @@ impl Player {
         };
 
 
-        let collision_box_dimensions = (0.25, 1.6);
+        let collision_box_dimensions = (0.25, 1.8);
 
         self.position.x += delta.x;
         let mut player_bounding_box = crate::collision::Rect3 {
             pos: Vector3::new(
                 self.position.x - (collision_box_dimensions.0/2.0),
-                self.position.y - (collision_box_dimensions.1/2.0),
+                self.position.y,
                 self.position.z - (collision_box_dimensions.0/2.0)),
             size: Vector3::new(
                 collision_box_dimensions.0,
@@ -86,7 +86,7 @@ impl Player {
         player_bounding_box = crate::collision::Rect3 {
             pos: Vector3::new(
                 self.position.x - (collision_box_dimensions.0/2.0),
-                self.position.y - (collision_box_dimensions.1/2.0),
+                self.position.y,
                 self.position.z - (collision_box_dimensions.0/2.0)),
             size: Vector3::new(
                 collision_box_dimensions.0,
@@ -123,7 +123,7 @@ impl Player {
         player_bounding_box = crate::collision::Rect3 {
             pos: Vector3::new(
                 self.position.x - (collision_box_dimensions.0/2.0),
-                self.position.y - (collision_box_dimensions.1/2.0),
+                self.position.y,
                 self.position.z - (collision_box_dimensions.0/2.0)),
             size: Vector3::new(
                 collision_box_dimensions.0,
@@ -155,7 +155,7 @@ impl Player {
             }
         }
 
-        self.camera.translate(self.position + 0.8 * Y_VECTOR);
+        self.camera.translate(self.position + self.height * Y_VECTOR);
     }
 
     pub fn move_direction(&mut self, direction: Vector3<f32>) {

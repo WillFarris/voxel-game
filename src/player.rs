@@ -1,7 +1,7 @@
 use cgmath::Vector3;
 
 use crate::{block::{self, BLOCKS}, camera::Camera, collision::{self, rect_vs_rect}, vectormath::{Y_VECTOR, dda, len, normalize, normalize_inplace}, world::World};
-
+use crate::inventory::Inventory;
 
 const GRAVITY: Vector3<f32> = Vector3 {x: 0.0, y: -0.09, z: 0.0};
 
@@ -12,6 +12,8 @@ pub(crate) struct Player {
     pub direction: Vector3<f32>,
     grounded: bool,
     height: f32,
+
+    inventory: Inventory,
 }
 
 impl Player {
@@ -23,6 +25,8 @@ impl Player {
             direction: Vector3::new(0.0f32, 0.0f32, 0f32),
             grounded: false,
             height: 1.6,
+
+            inventory: Inventory::new(),
         }
     }
 
@@ -73,7 +77,6 @@ impl Player {
                         };
                         self.position.x += x_overlap;
                         player_bounding_box.pos.x += x_overlap;
-                        println!("x: ({}, {}, {})", block_x, block_y, block_z);
                     }
                 }
             }
@@ -110,7 +113,6 @@ impl Player {
 
                         self.position.y += y_overlap;
                         player_bounding_box.pos.y += y_overlap;
-                        println!("y: ({}, {}, {})", block_x, block_y, block_z);
                     }
                 }
             }
@@ -146,7 +148,6 @@ impl Player {
                         };
                         self.position.z += z_overlap;
                         player_bounding_box.pos.z += z_overlap;
-                        println!("z: ({}, {}, {})", block_x, block_y, block_z);
                     }
                 }
             }

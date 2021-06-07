@@ -116,18 +116,7 @@ impl<'a> World<'a> {
                     if global_y < surface_y {
                         if global_y == surface_y.floor() {
                             chunk.blocks[block_x][block_y][block_z] = 2;
-                            if rand::random::<usize>()%100 < 1 {
-                                self.place_tree(Vector3::new(block_x, block_y, block_z), chunk);
-                            } else if rand::random::<usize>()%100 < 10 {
-                                chunk.blocks[block_x][block_y+1][block_z] = 12;
-                            } else if rand::random::<usize>()%100 < 1 {
-                                chunk.blocks[block_x][block_y+1][block_z] = 7;
-                            } else if rand::random::<usize>()%75 < 1 {
-                                chunk.blocks[block_x][block_y+1][block_z] = 10;
-                            }  else if rand::random::<usize>()%200 < 1 {
-                                chunk.blocks[block_x][block_y+1][block_z] = 13;
-                            }
-                        } else if global_y < (surface_y/2.0).floor() {
+                        } else if global_y < (7.0 * surface_y/8.0).floor() {
                             chunk.blocks[block_x][block_y][block_z] = 1;
                         } else {
                             chunk.blocks[block_x][block_y][block_z] = 3;
@@ -162,7 +151,7 @@ impl<'a> World<'a> {
 
     pub fn place_tree(&mut self, block_index: Vector3<usize>, chunk: &mut Chunk) {
 
-        if block_index.x == 0 || block_index.x == CHUNK_SIZE-1 || block_index.z == 0 || block_index.z == CHUNK_SIZE-1 {
+        if block_index.x == 0 || block_index.x == CHUNK_SIZE-1 || block_index.z == 0 || block_index.z == CHUNK_SIZE-1 || block_index.y > 4 {
             return;
         }
         
@@ -192,7 +181,7 @@ impl<'a> World<'a> {
     fn surface_noise(&self, global_x: f64, global_z: f64) -> f64 {
         5.0 * self.perlin.get([self.noise_scale * global_x + self.noise_offset.x, self.noise_scale * global_z + self.noise_offset.y])
                             //+ (50.0 * self.perlin.get([0.1 * noise_scale * self.noise_offset.x - 100.0, self.noise_offset.y - 44310.0]) + 3.0)
-                            + 5.1
+                            + 55.1
     }
 
     /*pub fn update_chunks(&mut self, player_position_global: Vector3<f32>) {

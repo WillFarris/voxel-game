@@ -9,6 +9,7 @@ mod shader;
 mod macros;
 mod player;
 mod world;
+mod inventory;
 mod collision;
 
 use camera::*;
@@ -80,10 +81,10 @@ fn main() {
 
     let texture_id = texture_from_file("terrain.png", ".");
     let seed = rand::random();
-    println!("Seed: {}", seed);
+    //println!("Seed: {}", seed);
     let mut world = world::World::new(mesh::Texture{id: texture_id}, &block_shader, &grass_shader, &leaves_shader, seed);
 
-    let mut player = player::Player::new(Vector3::new(5.0, 15.0, 4.5), Vector3::new(1.0, 0.0, 1.0));
+    let mut player = player::Player::new(Vector3::new(5.0, 65.0, 4.5), Vector3::new(1.0, 0.0, 1.0));
 
     let mut sunlight_direction: Vector3<f32> = Vector3 { x: -0.701, y: 0.701, z: -0.701 };
     

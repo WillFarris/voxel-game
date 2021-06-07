@@ -541,9 +541,9 @@ impl<'a> World<'a> {
         });*/
 
         if let Some(chunk) = self.chunks.get_mut(chunk_index) {
-            let solid_mesh = crate::mesh::Mesh::new(block_vertices, &self.texture, &self.block_shader);
-            let grass_mesh = crate::mesh::Mesh::new(grass_vertices, &self.texture, &self.grass_shader);
-            let leaves_mesh = crate::mesh::Mesh::new(leaves_vertices, &self.texture, &self.leaves_shader);
+            let solid_mesh = crate::mesh::Mesh::new(block_vertices, &self.texture, &self.block_shader, gl::TEXTURE0);
+            let grass_mesh = crate::mesh::Mesh::new(grass_vertices, &self.texture, &self.grass_shader, gl::TEXTURE0);
+            let leaves_mesh = crate::mesh::Mesh::new(leaves_vertices, &self.texture, &self.leaves_shader, gl::TEXTURE0);
             chunk.block_mesh = Some(solid_mesh);
             chunk.grass_mesh = Some(grass_mesh);
             chunk.leaves_mesh = Some(leaves_mesh);

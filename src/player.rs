@@ -3,7 +3,7 @@ use cgmath::Vector3;
 use crate::{block::{self, BLOCKS}, camera::Camera, collision::{self, rect_vs_rect}, vectormath::{Y_VECTOR, dda, len, normalize, normalize_inplace}, world::World};
 use crate::inventory::Inventory;
 
-const GRAVITY: Vector3<f32> = Vector3 {x: 0.0, y: -0.09, z: 0.0};
+const GRAVITY: Vector3<f32> = Vector3 {x: 0.0, y: -4.0, z: 0.0};
 
 pub(crate) struct Player {
     pub camera: Camera,
@@ -13,7 +13,7 @@ pub(crate) struct Player {
     grounded: bool,
     height: f32,
 
-    inventory: Inventory,
+    pub inventory: Inventory,
 }
 
 impl Player {
@@ -33,9 +33,8 @@ impl Player {
     pub fn update(&mut self, world: &World, delta_time: f32) {
 
         if !self.grounded {
-            self.direction.y -= 0.05;
+            self.direction += delta_time * GRAVITY;
         }
-
 
         let forward = normalize(&Vector3::new(self.camera.forward.x, 0.0, self.camera.forward.z));
         let delta = delta_time * Vector3 {

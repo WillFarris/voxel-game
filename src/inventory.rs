@@ -1,6 +1,6 @@
 pub struct Inventory {
-    items: [Option<(usize, usize)>; 9],
-    selected: usize,
+    pub items: [Option<(usize, usize)>; 9],
+    pub selected: usize,
 }
 
 impl Inventory {
@@ -27,4 +27,8 @@ impl Inventory {
             self.items[first_free_index] = Some((id_to_add, 1));
         }
     }
+
+    /*pub fn render_inventory(&self) {
+
+    }*/
 }

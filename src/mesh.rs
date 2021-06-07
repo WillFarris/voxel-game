@@ -3,7 +3,7 @@ use std::{ffi::c_void, path::Path};
 use std::{ffi::CString, ptr};
 use std::mem::size_of;
 use crate::offset_of;
-use gl::types::*;
+use gl::types::{*, self};
 use image::{self, GenericImageView};
 
 #[derive(Clone, Copy)]
@@ -19,23 +19,23 @@ pub struct Mesh {
 }
 
 impl Mesh {
-    pub fn new(vertices: Vec<Vertex>, texture: &Texture, shader: &Shader) -> Self {
+    pub fn new(vertices: Vec<Vertex>, texture: &Texture, shader: &Shader, gl_texture: types::GLenum) -> Self {
         let mut mesh = Mesh {
             vertices, texture: texture.clone(),
             vao: 0, vbo: 0
         };
         
-        mesh.setup_mesh(shader);
+        mesh.setup_mesh(shader, gl_texture);
         mesh
     }
 
-    fn setup_mesh(&mut self, shader: &Shader) {
+    fn setup_mesh(&mut self, shader: &Shader, gl_texture: types::GLenum) {
         if self.vertices.len() == 0 {
             return;
             //panic!("[ Mesh::setup_mesh() ] No vertices to setup!")
         }
         unsafe {
-            gl::ActiveTexture(gl::TEXTURE0);
+            gl::ActiveTexture(gl_texture);
 
             gl::TexParameterf(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::NEAREST as f32);
             gl::TexParameterf(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::NEAREST as f32);
@@ -80,7 +80,7 @@ impl Mesh {
     }
 }
 
-pub fn texture_from_file(path: &str, directory: &str) -> u32 {
+pub fn texture_from_file(path: &str, directory: &str, id: u32) -> u32 {
     let filename = format!("{}/{}", directory, path);
 
     let img = image::open(&Path::new(&filename)).expect("Texture failed to load");
@@ -95,7 +95,7 @@ pub fn texture_from_file(path: &str, directory: &str) -> u32 {
 
     let data = img.as_bytes();
 
-    let mut texture_id = 0;
+    let mut texture_id = id;
     
     unsafe {
         gl::GenTextures(1, &mut texture_id);

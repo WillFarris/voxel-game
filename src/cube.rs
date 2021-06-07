@@ -1,4 +1,4 @@
-use crate::vertex::*;
+use crate::{mesh::Texture, shader::Shader, vertex::*};
 use cgmath::{Vector2, Vector3};
 
 #[allow(unused)]
@@ -64,7 +64,9 @@ pub struct Cube {
 
 #[allow(unused)]
 impl Cube {
-    pub fn new(position: [f32; 3], color: [f32; 3]) -> Self {
+    pub fn new(position: [f32; 3], color: [f32; 3], texture: &Texture, shader: &Shader) -> Self {
+
+        let mesh = crate::mesh::Mesh::new(Vec::from(CUBE_VERTICES), texture, shader, gl::TEXTURE0);
         Self {
             position,
             model_matrix: [
@@ -89,9 +91,6 @@ impl Cube {
 
     /*pub fn draw(
         &self,
-        target: &mut glium::Frame,
-        params: &DrawParameters,
-        camera: &Camera,
         shader: &Program,
     ) {
         target

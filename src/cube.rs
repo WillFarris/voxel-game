@@ -66,7 +66,7 @@ pub struct Cube {
 impl Cube {
     pub fn new(position: [f32; 3], color: [f32; 3], texture: &Texture, shader: &Shader) -> Self {
 
-        let mesh = crate::mesh::Mesh::new(Vec::from(CUBE_VERTICES), texture, shader, gl::TEXTURE0);
+        let mesh = crate::mesh::Mesh::new(Vec::from(CUBE_VERTICES), texture, shader);
         Self {
             position,
             model_matrix: [

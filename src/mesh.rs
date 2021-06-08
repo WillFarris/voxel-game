@@ -1,6 +1,7 @@
-use crate::{shader::Shader, vertex::Vertex};
+use crate::{c_str, shader::Shader, vertex::Vertex};
 use std::{ffi::c_void, path::Path};
 use std::{ffi::CString, ptr};
+use std::ffi::CStr;
 use std::mem::size_of;
 use crate::offset_of;
 use gl::types::{*, self};
@@ -19,23 +20,23 @@ pub struct Mesh {
 }
 
 impl Mesh {
-    pub fn new(vertices: Vec<Vertex>, texture: &Texture, shader: &Shader, gl_texture: types::GLenum) -> Self {
+    pub fn new(vertices: Vec<Vertex>, texture: &Texture, shader: &Shader) -> Self {
         let mut mesh = Mesh {
             vertices, texture: texture.clone(),
             vao: 0, vbo: 0
         };
         
-        mesh.setup_mesh(shader, gl_texture);
+        mesh.setup_mesh(shader);
         mesh
     }
 
-    fn setup_mesh(&mut self, shader: &Shader, gl_texture: types::GLenum) {
+    fn setup_mesh(&mut self, shader: &Shader) {
         if self.vertices.len() == 0 {
             return;
             //panic!("[ Mesh::setup_mesh() ] No vertices to setup!")
         }
         unsafe {
-            gl::ActiveTexture(gl_texture);
+            gl::ActiveTexture(gl::TEXTURE0);
 
             gl::TexParameterf(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::NEAREST as f32);
             gl::TexParameterf(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::NEAREST as f32);
@@ -71,8 +72,11 @@ impl Mesh {
         }
     }
 
-    pub fn draw(&self) {
+    pub fn draw(&self, shader: &Shader) {
         unsafe {
+            let sampler = c_str!("texture_map").as_ptr();
+            gl::Uniform1i(gl::GetUniformLocation(shader.id, sampler), 0);
+            gl::BindTexture(gl::TEXTURE_2D, self.texture.id);
             gl::BindVertexArray(self.vao);
             gl::DrawArrays(gl::TRIANGLES, 0, self.vertices.len() as i32);
             gl::BindVertexArray(0);
@@ -80,7 +84,7 @@ impl Mesh {
     }
 }
 
-pub fn texture_from_file(path: &str, directory: &str, id: u32) -> u32 {
+pub fn texture_from_file(path: &str, directory: &str) -> u32 {
     let filename = format!("{}/{}", directory, path);
 
     let img = image::open(&Path::new(&filename)).expect("Texture failed to load");
@@ -95,7 +99,7 @@ pub fn texture_from_file(path: &str, directory: &str, id: u32) -> u32 {
 
     let data = img.as_bytes();
 
-    let mut texture_id = id;
+    let mut texture_id = 0;
     
     unsafe {
         gl::GenTextures(1, &mut texture_id);
@@ -108,7 +112,7 @@ pub fn texture_from_file(path: &str, directory: &str, id: u32) -> u32 {
         gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::REPEAT as i32);
         gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::REPEAT as i32);
         gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::LINEAR_MIPMAP_LINEAR as i32);
-        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::LINEAR as i32);
+        gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::NEAREST as i32);
     }
 
     texture_id

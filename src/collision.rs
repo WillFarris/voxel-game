@@ -1,12 +1,12 @@
 use cgmath::Vector3;
-use std::mem::swap;
+//use std::mem::swap;
 
 pub struct Rect3 {
     pub pos: Vector3<f32>,
     pub size: Vector3<f32>,
 }
 
-pub fn point_vs_rect(p: &Vector3<f32>, r: &Rect3) -> bool { 
+/*pub fn point_vs_rect(p: &Vector3<f32>, r: &Rect3) -> bool { 
     p.x >= r.pos.x &&
     p.y >= r.pos.y &&
     p.z >= r.pos.z &&
@@ -14,7 +14,7 @@ pub fn point_vs_rect(p: &Vector3<f32>, r: &Rect3) -> bool {
     p.x <= (r.pos.x + r.size.x) &&
     p.y <= (r.pos.y + r.size.y) &&
     p.z <= (r.pos.z + r.size.z)
-}
+}*/
 
 pub fn rect_vs_rect(r1: &Rect3, r2: &Rect3) -> bool {
     r1.pos.x < (r2.pos.x + r2.size.x) && (r1.pos.x + r1.size.x) > r2.pos.x &&
@@ -22,7 +22,7 @@ pub fn rect_vs_rect(r1: &Rect3, r2: &Rect3) -> bool {
     r1.pos.z < (r2.pos.z + r2.size.z) && (r1.pos.z + r1.size.z) > r2.pos.z
 }
 
-fn ray_vs_rect(
+/*fn ray_vs_rect(
     ray_origin: &Vector3<f32>,
     ray_dir: &Vector3<f32>,
     target: &Rect3,
@@ -90,4 +90,4 @@ fn ray_vs_rect(
         } 
 
         true
-}
+}*/

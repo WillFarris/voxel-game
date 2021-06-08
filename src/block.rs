@@ -1,5 +1,3 @@
-use crate::mesh::Mesh;
-
 pub const BLOCKS: [Block; 14] = [
     Block {id: 0, name: "Air", solid: false, transparent: true, block_type: BlockType::Block, mesh_type: MeshType::Block, texture_map: None },
     Block {id: 1, name: "Stone", solid: true, transparent: false, block_type: BlockType::Block, mesh_type: MeshType::Block, texture_map: Some(TextureType::Single(1.0, 15.0)) },
@@ -22,8 +20,6 @@ pub enum BlockType {
     Block,
     Grass,
     Leaves,
-    Water,
-    Lava,
 }
 
 #[derive(Clone, Copy)]

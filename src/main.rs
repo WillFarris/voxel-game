@@ -17,10 +17,7 @@ use cgmath::{Matrix4, Vector2, Vector3};
 use glfw::Context;
 use mesh::texture_from_file;
 use vectormath::dda;
-use world::CHUNK_SIZE;
 use std::ffi::CStr;
-
-use noise::{NoiseFn, Perlin, Seedable};
 
 use crate::vertex::Vertex;
 
@@ -74,7 +71,6 @@ fn main() {
         "shaders/block_fragment.glsl"
     };
 
-    //let solid_shader = shader::Shader::new(terrain_vertex_shader_path, solid_fragment_shader_path);
     let block_shader = shader::Shader::new(block_vertex_shader_path, block_fragment_shader_path);
     let grass_shader = shader::Shader::new(grass_vertex_shader_path, block_fragment_shader_path);
     let leaves_shader = shader::Shader::new(leaves_vertex_shader_path, block_fragment_shader_path);
@@ -83,35 +79,27 @@ fn main() {
 
     //let mut cube1 = cube::Cube::new([-1.0, 5.0, 5.0], [0.9, 0.2, 0.2]);
 
-    unsafe {
-        gl::ActiveTexture(gl::TEXTURE0);
-    }
-    let terrain_texture_id = texture_from_file("terrain.png", ".", 0);
+    let terrain_texture_id = texture_from_file("terrain.png", ".");
     let seed = rand::random();
-    //println!("Seed: {}", seed);
     let mut world = world::World::new(mesh::Texture{id: terrain_texture_id}, &block_shader, &grass_shader, &leaves_shader, seed);
 
     let mut player = player::Player::new(Vector3::new(5.0, 65.0, 4.5), Vector3::new(1.0, 0.0, 1.0));
 
-    unsafe {
-        gl::ActiveTexture(gl::TEXTURE1);
-    }
-    let inventory_texture_id = texture_from_file("gui.png", ".", 0);
-    let gui_verts = Vec::from([
-        
-        Vertex { position: Vector3::new( -0.5, -0.875,  0.0), normal: Vector3::new( 0.0,  0.0, 0.0), tex_coords: Vector2::new(0.0, 1.0) },  // Front-bottom-right
-        Vertex { position: Vector3::new( 0.5, -1.0, 0.0), normal: Vector3::new( 0.0,  0.0, 0.0), tex_coords: Vector2::new(0.625, 0.9375) },   // Back-bottom-right
-        Vertex { position: Vector3::new( -0.5,  -1.0,  0.0), normal: Vector3::new( 0.0,  0.0, 0.0), tex_coords: Vector2::new(0.0, 0.9375) }, // Front-top-right
-    
-        Vertex { position: Vector3::new( -0.5,  -0.875,  0.0), normal: Vector3::new( 0.0,  0.0, 0.0), tex_coords: Vector2::new(0.0, 1.0) }, // Front-top-right
-        Vertex { position: Vector3::new( 0.5, -0.875, 0.0), normal: Vector3::new( 0.0,  0.0, 0.0), tex_coords: Vector2::new(0.625, 1.0) },   // Back-bottom-right
-        Vertex { position: Vector3::new( 0.5,  -1.0, 0.0), normal: Vector3::new( 0.0,  0.0, 0.0), tex_coords: Vector2::new(0.625, 0.9375) },  // Back-top-right
+    let inventory_texture_id = texture_from_file("gui.png", ".");
+    let gui_verts = Vec::from([   
+        Vertex { position: Vector3::new( -0.5,  -0.8,  0.0), normal: Vector3::new( 0.0,  0.0, 0.0), tex_coords: Vector2::new(0.0, 0.9140625) },
+        Vertex { position: Vector3::new( 0.5, -0.8, 0.0), normal: Vector3::new( 0.0,  0.0, 0.0), tex_coords: Vector2::new(0.7109375, 0.9140625) },
+        Vertex { position: Vector3::new( 0.5,  -1.0, 0.0), normal: Vector3::new( 0.0,  0.0, 0.0), tex_coords: Vector2::new(0.7109375, 1.0) },
+
+        Vertex { position: Vector3::new( -0.5, -0.8,  0.0), normal: Vector3::new( 0.0,  0.0, 0.0), tex_coords: Vector2::new(0.0, 0.9140625) },
+        Vertex { position: Vector3::new( 0.5, -1.0, 0.0), normal: Vector3::new( 0.0,  0.0, 0.0), tex_coords: Vector2::new(0.7109375, 1.0) },
+        Vertex { position: Vector3::new( -0.5,  -1.0,  0.0), normal: Vector3::new( 0.0,  0.0, 0.0), tex_coords: Vector2::new(0.0, 1.0) },
         
     ],);
-    let gui_mesh = mesh::Mesh::new(gui_verts, &mesh::Texture { id: inventory_texture_id}, &gui_shader, gl::TEXTURE1);
+    let gui_mesh = mesh::Mesh::new(gui_verts, &mesh::Texture { id: inventory_texture_id}, &gui_shader);
 
 
-    let mut sunlight_direction: Vector3<f32> = Vector3 { x: -0.701, y: 0.701, z: -0.701 };
+    let sunlight_direction: Vector3<f32> = Vector3 { x: -0.701, y: 0.701, z: -0.701 };
     
 
     unsafe {
@@ -127,25 +115,12 @@ fn main() {
     
     let start_time = glfw.get_time();
     let mut previous_time = start_time;
-    let mut frame_count = 0;
-    let mut current_block = 4;
     while !window.should_close() {
         let current_time = glfw.get_time();
         let delta_time = (current_time - previous_time) as f32;
         let elapsed_time = current_time - start_time;
         previous_time = current_time;
-        frame_count += 1;
-        //std::thread::sleep(std::time::Duration::from_nanos(11111111));
-
-        //sunlight_direction.x = glfw.get_time().sin() as f32;
-        //sunlight_direction.z = glfw.get_time().cos() as f32;
-
-        //world.update_chunks(player.position);
         player.update(&world, delta_time);
-        /*if let Some((intersect, block, )) = dda(&chunk, &player.delta, &player.direction, vectormath::len(&player.delta)) {
-            cursor_position = intersect;
-        }*/
-        //cursor_position = player.position + player.delta;
 
         unsafe {          
             gl::ClearColor(0.1, 0.4, 0.95, 1.0);
@@ -158,7 +133,6 @@ fn main() {
             let view = player.camera.view_matrix();
             //let model = Matrix4::from_scale(1.0);
 
-            gl::ActiveTexture(gl::TEXTURE0);
             block_shader.use_program();
             block_shader.set_mat4(c_str!("perspective_matrix"), &projection);
             block_shader.set_mat4(c_str!("view_matrix"), &view);
@@ -180,10 +154,9 @@ fn main() {
             leaves_shader.set_float(c_str!("time"), elapsed_time as f32);
             world.render_leaves();
 
-            gl::ActiveTexture(gl::TEXTURE1);
             gui_shader.use_program();
-            gui_shader.set_float(c_str!("selected"), player.inventory.selected as f32);
-            gui_mesh.draw();
+            gui_shader.set_float(c_str!("selected"), (player.inventory.selected as f32 - 1.0).max(0.0));
+            gui_mesh.draw(&gui_shader);
 
             //let cursor_projection: Matrix4<f32> = perspective_matrix();//cgmath::perspective(cgmath::Deg(90.0), WIDTH as f32 / HEIGHT as f32, 0.1, 100.0);
             //let view = player.camera.view_matrix();
@@ -239,9 +212,7 @@ fn main() {
                                             world_index.z
                                         },
                                     };
-                                    //let index_diff = intersect_index - world_index;
-                                    world.place_at_global_pos(place_index, current_block);
-                                    //world.place_tree(world_index);
+                                    world.place_at_global_pos(place_index, player.inventory.selected);
                                 }
                             }
                         },
@@ -257,16 +228,16 @@ fn main() {
                     glfw::Key::Space =>  { if action == glfw::Action::Press { player.move_direction(Vector3::new(0.0, 1.5, 0.0)) } else if action == glfw::Action::Release { /*player.stop_move_direction(Vector3::new(0.0, 2.0, 0.0))*/ } },
                     //glfw::Key::LeftShift =>  { if action == glfw::Action::Press { player.move_direction(Vector3::new(0.0, -1.0, 0.0)) } else if action == glfw::Action::Release { player.stop_move_direction(Vector3::new(0.0, -1.0, 0.0)) } },
                     
-                    glfw::Key::Kp1 => {player.inventory.selected = 0;}
-                    glfw::Key::Kp2 => {player.inventory.selected = 1;}
-                    glfw::Key::Kp3 => {player.inventory.selected = 2;}
-                    glfw::Key::Kp4 => {player.inventory.selected = 3;}
-                    glfw::Key::Kp5 => {player.inventory.selected = 4;}
-                    glfw::Key::Kp6 => {player.inventory.selected = 5;}
-                    glfw::Key::Kp7 => {player.inventory.selected = 6;}
-                    glfw::Key::Kp8 => {player.inventory.selected = 7;}
-                    glfw::Key::Kp9 => {player.inventory.selected = 8;}
-                    glfw::Key::Kp0 => {player.inventory.selected = 9;}
+                    glfw::Key::Num1 => { if action == glfw::Action::Press { player.inventory.selected = 1;} }
+                    glfw::Key::Num2 => { if action == glfw::Action::Press { player.inventory.selected = 2;} }
+                    glfw::Key::Num3 => { if action == glfw::Action::Press { player.inventory.selected = 3;} } 
+                    glfw::Key::Num4 => { if action == glfw::Action::Press { player.inventory.selected = 4;} }
+                    glfw::Key::Num5 => { if action == glfw::Action::Press { player.inventory.selected = 5;} }
+                    glfw::Key::Num6 => { if action == glfw::Action::Press { player.inventory.selected = 6;} }
+                    glfw::Key::Num7 => { if action == glfw::Action::Press { player.inventory.selected = 7;} }
+                    glfw::Key::Num8 => { if action == glfw::Action::Press { player.inventory.selected = 8;} }
+                    glfw::Key::Num9 => { if action == glfw::Action::Press { player.inventory.selected = 9;} }
+                    glfw::Key::Num0 => { if action == glfw::Action::Press { player.inventory.selected = 10;} }
                     
                     _ => {}
                 },

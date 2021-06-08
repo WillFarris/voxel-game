@@ -1,10 +1,7 @@
 use std::collections::HashMap;
 
 use cgmath::{Matrix4, Vector3, Vector2};
-use gl::CULL_FACE;
-use rand::random;
-
-use crate::{block::{self, BLOCKS, MeshType}, mesh::*, meshgen::{self, *}, shader::Shader, vectormath::{dot, len, normalize}};
+use crate::{block::{self, BLOCKS, MeshType}, mesh::*, meshgen::*, shader::Shader, vectormath::{dot, len, normalize}};
 
 use std::ffi::CStr;
 
@@ -18,19 +15,16 @@ pub struct Chunk {
     grass_mesh: Option<Mesh>,
     leaves_mesh: Option<Mesh>,
     model_matrix: Matrix4<f32>,
-    texture: Texture,
 }
 
 impl Chunk {
-    pub fn from_blocks(blocks: [[[usize; CHUNK_SIZE]; CHUNK_SIZE]; CHUNK_SIZE], position: Vector3<isize>, texture_id: u32) -> Self {
-        let texture = Texture {id: texture_id};
+    pub fn from_blocks(blocks: [[[usize; CHUNK_SIZE]; CHUNK_SIZE]; CHUNK_SIZE], position: Vector3<isize>) -> Self {
         Self {
             blocks,
             block_mesh: None,
             grass_mesh: None,
             leaves_mesh: None,
             model_matrix: Matrix4::from_translation(Vector3::new(position.x as f32, position.y as f32, position.z as f32)),
-            texture,
         }
     }
 
@@ -80,7 +74,7 @@ impl<'a> World<'a> {
                 for chunk_z in -chunk_radius..chunk_radius {
                     let chunk_index = Vector3::new(chunk_x, chunk_y, chunk_z);
                     let chunk_data: [[[usize; CHUNK_SIZE]; CHUNK_SIZE]; CHUNK_SIZE] = [[[0; CHUNK_SIZE]; CHUNK_SIZE]; CHUNK_SIZE];
-                    let mut cur_chunk = Chunk::from_blocks(chunk_data, 16 * chunk_index, world.texture.id);
+                    let mut cur_chunk = Chunk::from_blocks(chunk_data, 16 * chunk_index);
                     
                     world.gen_terrain(&chunk_index, &mut cur_chunk);
                     //world.gen_caves(&chunk_index, &mut cur_chunk);
@@ -173,7 +167,7 @@ impl<'a> World<'a> {
     }
 
     pub fn chunk_from_block_array(&mut self, chunk_index: Vector3<isize>, blocks: [[[usize; CHUNK_SIZE]; CHUNK_SIZE]; CHUNK_SIZE]) {
-        let new_chunk = Chunk::from_blocks(blocks, 16 * chunk_index, self.texture.id);
+        let new_chunk = Chunk::from_blocks(blocks, 16 * chunk_index);
         self.chunks.insert(chunk_index, new_chunk);
         self.gen_chunk_mesh(&chunk_index);
     }
@@ -217,14 +211,14 @@ impl<'a> World<'a> {
         
     }*/
 
-    pub fn render_solid(&self, player_position: Vector3<f32>, player_direction: Vector3<f32>) {
+    pub fn render_solid(&self, _player_position: Vector3<f32>, _player_direction: Vector3<f32>) {
         unsafe {
             gl::Enable(gl::CULL_FACE);
-            for (position, chunk) in &self.chunks {
+            for (_position, chunk) in &self.chunks {
                 //chunk.render(self.shader);
                 if let Some(m) = &chunk.block_mesh {
                     self.block_shader.set_mat4(c_str!("model_matrix"), &chunk.model_matrix);
-                    m.draw();
+                    m.draw(&self.block_shader);
                 }
             }
         }
@@ -233,10 +227,10 @@ impl<'a> World<'a> {
     pub fn render_grass(&self) {
         unsafe {
             gl::Disable(gl::CULL_FACE);
-            for (position, chunk) in &self.chunks {
+            for (_position, chunk) in &self.chunks {
                 if let Some(m) = &chunk.grass_mesh {
                     self.grass_shader.set_mat4(c_str!("model_matrix"), &chunk.model_matrix);
-                    m.draw();
+                    m.draw(&self.grass_shader);
                 }
             }
         }
@@ -245,10 +239,10 @@ impl<'a> World<'a> {
     pub fn render_leaves(&self) {
         unsafe {
             gl::Disable(gl::CULL_FACE);
-            for (position, chunk) in &self.chunks {
+            for (_position, chunk) in &self.chunks {
                 if let Some(m) = &chunk.leaves_mesh {
                     self.leaves_shader.set_mat4(c_str!("model_matrix"), &chunk.model_matrix);
-                    m.draw();
+                    m.draw(&self.leaves_shader);
                 }
             }
         }
@@ -541,9 +535,9 @@ impl<'a> World<'a> {
         });*/
 
         if let Some(chunk) = self.chunks.get_mut(chunk_index) {
-            let solid_mesh = crate::mesh::Mesh::new(block_vertices, &self.texture, &self.block_shader, gl::TEXTURE0);
-            let grass_mesh = crate::mesh::Mesh::new(grass_vertices, &self.texture, &self.grass_shader, gl::TEXTURE0);
-            let leaves_mesh = crate::mesh::Mesh::new(leaves_vertices, &self.texture, &self.leaves_shader, gl::TEXTURE0);
+            let solid_mesh = crate::mesh::Mesh::new(block_vertices, &self.texture, &self.block_shader);
+            let grass_mesh = crate::mesh::Mesh::new(grass_vertices, &self.texture, &self.grass_shader);
+            let leaves_mesh = crate::mesh::Mesh::new(leaves_vertices, &self.texture, &self.leaves_shader);
             chunk.block_mesh = Some(solid_mesh);
             chunk.grass_mesh = Some(grass_mesh);
             chunk.leaves_mesh = Some(leaves_mesh);

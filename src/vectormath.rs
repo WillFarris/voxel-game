@@ -1,7 +1,6 @@
 use std::ops::Mul;
 
 use cgmath::{Matrix3, Vector3, Vector4};
-use noise::Add;
 
 use crate::world;
 

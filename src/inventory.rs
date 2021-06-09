@@ -28,6 +28,22 @@ impl Inventory {
         }
     }
 
+    pub fn consume_currently_selected(&mut self) -> Option<usize> {
+        let mut should_remove= false;
+        if let Some((id, quantity)) = &mut self.items[self.selected] {
+            if *quantity > 0 {
+                *quantity -= 1;
+            }
+            return Some(*id)
+        }
+
+        if should_remove {
+            self.items[self.selected] = None;
+        }
+
+        None
+    }
+
     /*pub fn render_inventory(&self) {
 
     }*/

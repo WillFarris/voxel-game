@@ -25,7 +25,7 @@ extern crate image;
 extern crate glfw;
 extern crate gl;
 
-const WIDTH: u32 = 800;
+const WIDTH: u32 = 1024;
 const HEIGHT: u32 = 600;
 
 fn main() {
@@ -86,12 +86,13 @@ fn main() {
     let mut player = player::Player::new(Vector3::new(5.0, 65.0, 4.5), Vector3::new(1.0, 0.0, 1.0));
 
     let inventory_texture_id = texture_from_file("gui.png", ".");
+    let aspect_ratio = crate::WIDTH as f32 / crate::HEIGHT as f32;
     let gui_verts = Vec::from([   
-        Vertex { position: Vector3::new( -0.5,  -0.8,  0.0), normal: Vector3::new( 0.0,  0.0, 0.0), tex_coords: Vector2::new(0.0, 0.9140625) },
-        Vertex { position: Vector3::new( 0.5, -0.8, 0.0), normal: Vector3::new( 0.0,  0.0, 0.0), tex_coords: Vector2::new(0.7109375, 0.9140625) },
+        Vertex { position: Vector3::new( -0.5,  -1.0 + (aspect_ratio * 0.120879),  0.0), normal: Vector3::new( 0.0,  0.0, 0.0), tex_coords: Vector2::new(0.0, 0.9140625) },
+        Vertex { position: Vector3::new( 0.5, -1.0 + (aspect_ratio * 0.120879), 0.0), normal: Vector3::new( 0.0,  0.0, 0.0), tex_coords: Vector2::new(0.7109375, 0.9140625) },
         Vertex { position: Vector3::new( 0.5,  -1.0, 0.0), normal: Vector3::new( 0.0,  0.0, 0.0), tex_coords: Vector2::new(0.7109375, 1.0) },
 
-        Vertex { position: Vector3::new( -0.5, -0.8,  0.0), normal: Vector3::new( 0.0,  0.0, 0.0), tex_coords: Vector2::new(0.0, 0.9140625) },
+        Vertex { position: Vector3::new( -0.5, -1.0 + (aspect_ratio * 0.120879),  0.0), normal: Vector3::new( 0.0,  0.0, 0.0), tex_coords: Vector2::new(0.0, 0.9140625) },
         Vertex { position: Vector3::new( 0.5, -1.0, 0.0), normal: Vector3::new( 0.0,  0.0, 0.0), tex_coords: Vector2::new(0.7109375, 1.0) },
         Vertex { position: Vector3::new( -0.5,  -1.0,  0.0), normal: Vector3::new( 0.0,  0.0, 0.0), tex_coords: Vector2::new(0.0, 1.0) },
         
@@ -155,7 +156,7 @@ fn main() {
             world.render_leaves();
 
             gui_shader.use_program();
-            gui_shader.set_float(c_str!("selected"), (player.inventory.selected as f32 - 1.0).max(0.0));
+            gui_shader.set_float(c_str!("selected"), (player.inventory.selected % 10) as f32);
             gui_mesh.draw(&gui_shader);
 
             //let cursor_projection: Matrix4<f32> = perspective_matrix();//cgmath::perspective(cgmath::Deg(90.0), WIDTH as f32 / HEIGHT as f32, 0.1, 100.0);
@@ -182,12 +183,15 @@ fn main() {
                         glfw::MouseButton::Button1 => {
                             if action == glfw::Action::Press {
                                 if let Some((_, world_index)) = dda(&world, &player.camera.position, &player.camera.forward, 6.0) {
+                                    let block_id = world.block_at_global_pos(world_index);
+                                    player.inventory.add_to_inventory(block_id);
                                     world.destroy_at_global_pos(world_index);
                                 }
                             }
                         },
                         glfw::MouseButton::Button2 => {
-                            if action == glfw::Action::Press {
+                            if let Some(block_id) = player.inventory.consume_currently_selected() {
+                                if action == glfw::Action::Press {
                                 if let Some((intersect_position, world_index)) = dda(&world, &player.camera.position, &player.camera.forward, 6.0) {
                                     let place_index = Vector3 {
                                         x: if intersect_position.x == world_index.x as f32 {
@@ -212,8 +216,9 @@ fn main() {
                                             world_index.z
                                         },
                                     };
-                                    world.place_at_global_pos(place_index, player.inventory.selected);
+                                    world.place_at_global_pos(place_index, block_id);
                                 }
+                            }
                             }
                         },
                         _ => {}
@@ -228,16 +233,16 @@ fn main() {
                     glfw::Key::Space =>  { if action == glfw::Action::Press { player.move_direction(Vector3::new(0.0, 1.5, 0.0)) } else if action == glfw::Action::Release { /*player.stop_move_direction(Vector3::new(0.0, 2.0, 0.0))*/ } },
                     //glfw::Key::LeftShift =>  { if action == glfw::Action::Press { player.move_direction(Vector3::new(0.0, -1.0, 0.0)) } else if action == glfw::Action::Release { player.stop_move_direction(Vector3::new(0.0, -1.0, 0.0)) } },
                     
-                    glfw::Key::Num1 => { if action == glfw::Action::Press { player.inventory.selected = 1;} }
-                    glfw::Key::Num2 => { if action == glfw::Action::Press { player.inventory.selected = 2;} }
-                    glfw::Key::Num3 => { if action == glfw::Action::Press { player.inventory.selected = 3;} } 
-                    glfw::Key::Num4 => { if action == glfw::Action::Press { player.inventory.selected = 4;} }
-                    glfw::Key::Num5 => { if action == glfw::Action::Press { player.inventory.selected = 5;} }
-                    glfw::Key::Num6 => { if action == glfw::Action::Press { player.inventory.selected = 6;} }
-                    glfw::Key::Num7 => { if action == glfw::Action::Press { player.inventory.selected = 7;} }
-                    glfw::Key::Num8 => { if action == glfw::Action::Press { player.inventory.selected = 8;} }
-                    glfw::Key::Num9 => { if action == glfw::Action::Press { player.inventory.selected = 9;} }
-                    glfw::Key::Num0 => { if action == glfw::Action::Press { player.inventory.selected = 10;} }
+                    glfw::Key::Num1 => { if action == glfw::Action::Press { player.inventory.selected = 0;} }
+                    glfw::Key::Num2 => { if action == glfw::Action::Press { player.inventory.selected = 1;} }
+                    glfw::Key::Num3 => { if action == glfw::Action::Press { player.inventory.selected = 2;} } 
+                    glfw::Key::Num4 => { if action == glfw::Action::Press { player.inventory.selected = 3;} }
+                    glfw::Key::Num5 => { if action == glfw::Action::Press { player.inventory.selected = 4;} }
+                    glfw::Key::Num6 => { if action == glfw::Action::Press { player.inventory.selected = 5;} }
+                    glfw::Key::Num7 => { if action == glfw::Action::Press { player.inventory.selected = 6;} }
+                    glfw::Key::Num8 => { if action == glfw::Action::Press { player.inventory.selected = 7;} }
+                    glfw::Key::Num9 => { if action == glfw::Action::Press { player.inventory.selected = 8;} }
+                    //glfw::Key::Num0 => { if action == glfw::Action::Press { player.inventory.selected = 9;} }
                     
                     _ => {}
                 },

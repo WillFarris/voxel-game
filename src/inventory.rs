@@ -1,3 +1,5 @@
+use crate::block;
+
 pub struct Inventory {
     pub items: [Option<(usize, usize)>; 9],
     pub selected: usize,
@@ -28,19 +30,23 @@ impl Inventory {
         }
     }
 
+    //TODO: This deletes 1 more block than it should
     pub fn consume_currently_selected(&mut self) -> Option<usize> {
-        let mut should_remove= false;
+        let mut should_delete = false;
+        let mut block_id = 0;
         if let Some((id, quantity)) = &mut self.items[self.selected] {
-            if *quantity > 0 {
-                *quantity -= 1;
+            *quantity -= 1;
+            if *quantity == 0 {
+                should_delete = true;
+                block_id = *id;
+            } else {
+                return Some(*id)
             }
-            return Some(*id)
         }
-
-        if should_remove {
+        if should_delete {
             self.items[self.selected] = None;
+            return Some(block_id);
         }
-
         None
     }
 

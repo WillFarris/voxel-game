@@ -1,4 +1,8 @@
-#version 460
+#version 150
+
+#ifdef GL_ES
+precision mediump float;
+#endif
 
 in vec3 v_normal;
 in vec3 v_position;

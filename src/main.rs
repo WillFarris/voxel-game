@@ -76,6 +76,7 @@ fn main() {
     let leaves_shader = shader::Shader::new(leaves_vertex_shader_path, block_fragment_shader_path);
     
     let gui_shader = shader::Shader::new("shaders/gui_vertex.glsl", "shaders/gui_fragment.glsl");
+    let block_icon_shader = shader::Shader::new("shaders/icon_block_vertex.glsl", "shaders/icon_block_fragment.glsl");
 
     //let mut cube1 = cube::Cube::new([-1.0, 5.0, 5.0], [0.9, 0.2, 0.2]);
 
@@ -97,7 +98,36 @@ fn main() {
         Vertex { position: Vector3::new( -0.5,  -1.0,  0.0), normal: Vector3::new( 0.0,  0.0, 0.0), tex_coords: Vector2::new(0.0, 1.0) },
         
     ],);
-    let gui_mesh = mesh::Mesh::new(gui_verts, &mesh::Texture { id: inventory_texture_id}, &gui_shader);
+    let gui_mesh = mesh::Mesh::new(gui_verts, &crate::mesh::Texture { id: inventory_texture_id}, &gui_shader);
+
+
+
+    let block_icon_verts = Vec::from([
+        Vertex { position: Vector3::new( 1.0, 0.0,  1.0), normal: Vector3::new( 1.0,  0.0, 0.0), tex_coords: Vector2::new(1.0, 0.0) },  // Front-bottom-right
+        Vertex { position: Vector3::new( 1.0, 0.0, 0.0), normal: Vector3::new( 1.0,  0.0, 0.0), tex_coords: Vector2::new(0.0, 0.0) },   // Back-bottom-right
+        Vertex { position: Vector3::new( 1.0,  1.0,  1.0), normal: Vector3::new( 1.0,  0.0, 0.0), tex_coords: Vector2::new(1.0, 1.0) }, // Front-top-right
+    
+        Vertex { position: Vector3::new( 1.0,  1.0,  1.0), normal: Vector3::new( 1.0,  0.0, 0.0), tex_coords: Vector2::new(1.0, 1.0) }, // Front-top-right
+        Vertex { position: Vector3::new( 1.0, 0.0, 0.0), normal: Vector3::new( 1.0,  0.0, 0.0), tex_coords: Vector2::new(0.0, 0.0) },   // Back-bottom-right
+        Vertex { position: Vector3::new( 1.0,  1.0, 0.0), normal: Vector3::new( 1.0,  0.0, 0.0), tex_coords: Vector2::new(0.0, 1.0) },  // Back-top-right
+
+        Vertex { position: Vector3::new( 1.0,  1.0,  1.0), normal: Vector3::new( 0.0,  1.0, 0.0), tex_coords: Vector2::new(1.0, 1.0) },   // Front-top-right
+        Vertex { position: Vector3::new( 1.0,  1.0, 0.0), normal: Vector3::new( 0.0,  1.0, 0.0), tex_coords: Vector2::new(1.0, 0.0) },   // Back-top-right
+        Vertex { position: Vector3::new(0.0,  1.0,  1.0), normal: Vector3::new( 0.0,  1.0, 0.0), tex_coords: Vector2::new(0.0, 1.0) },   // Front-top-left
+    
+        Vertex { position: Vector3::new(0.0,  1.0,  1.0), normal: Vector3::new( 0.0,  1.0, 0.0), tex_coords: Vector2::new(0.0, 1.0) },   // Front-top-left
+        Vertex { position: Vector3::new( 1.0,  1.0, 0.0), normal: Vector3::new( 0.0,  1.0, 0.0), tex_coords: Vector2::new(1.0, 0.0) },   // Back-top-right
+        Vertex { position: Vector3::new(0.0,  1.0, 0.0), normal: Vector3::new( 0.0,  1.0, 0.0), tex_coords: Vector2::new(0.0, 0.0) },   // Back-top-left
+
+        Vertex { position: Vector3::new( 1.0,  1.0,  1.0), normal: Vector3::new( 0.0,  0.0,  1.0), tex_coords: Vector2::new(1.0, 1.0) },   // Front-top-right
+        Vertex { position: Vector3::new(0.0,  1.0,  1.0), normal: Vector3::new( 0.0,  0.0,  1.0), tex_coords: Vector2::new(0.0, 1.0) },   // Front-top-left
+        Vertex { position: Vector3::new(0.0, 0.0,  1.0), normal: Vector3::new( 0.0,  0.0,  1.0), tex_coords: Vector2::new(0.0, 0.0) },   // Front-bottom-left
+    
+        Vertex { position: Vector3::new( 1.0,  1.0,  1.0), normal: Vector3::new( 0.0,  0.0,  1.0), tex_coords: Vector2::new(1.0, 1.0) },   // Front-top-right
+        Vertex { position: Vector3::new(0.0, 0.0,  1.0), normal: Vector3::new( 0.0,  0.0,  1.0), tex_coords: Vector2::new(0.0, 0.0) },   // Front-bottom-left
+        Vertex { position: Vector3::new( 1.0, 0.0,  1.0), normal: Vector3::new( 0.0,  0.0,  1.0), tex_coords: Vector2::new(1.0, 0.0) },   // Front-bottom-right
+    ],);
+    let block_icon_mesh = mesh::Mesh::new(block_icon_verts, &crate::mesh::Texture { id: terrain_texture_id}, &block_icon_shader);
 
 
     let sunlight_direction: Vector3<f32> = Vector3 { x: -0.701, y: 0.701, z: -0.701 };
@@ -159,6 +189,11 @@ fn main() {
             gui_shader.set_float(c_str!("selected"), (player.inventory.selected % 10) as f32);
             gui_mesh.draw(&gui_shader);
 
+            gl::Disable(gl::CULL_FACE);
+            block_icon_shader.use_program();
+            block_icon_mesh.draw(&block_icon_shader);
+            gl::Enable(gl::CULL_FACE);
+
             //let cursor_projection: Matrix4<f32> = perspective_matrix();//cgmath::perspective(cgmath::Deg(90.0), WIDTH as f32 / HEIGHT as f32, 0.1, 100.0);
             //let view = player.camera.view_matrix();
             /*let cursor_model = Matrix4::from_translation(cursor_position);
@@ -190,35 +225,35 @@ fn main() {
                             }
                         },
                         glfw::MouseButton::Button2 => {
-                            if let Some(block_id) = player.inventory.consume_currently_selected() {
-                                if action == glfw::Action::Press {
-                                if let Some((intersect_position, world_index)) = dda(&world, &player.camera.position, &player.camera.forward, 6.0) {
-                                    let place_index = Vector3 {
-                                        x: if intersect_position.x == world_index.x as f32 {
-                                            world_index.x - 1
-                                        } else if intersect_position.x-1.0 == world_index.x as f32 {
-                                            world_index.x + 1
-                                        } else {
-                                            world_index.x
-                                        },
-                                        y: if intersect_position.y== world_index.y as f32 {
-                                            world_index.y - 1
-                                        } else if intersect_position.y-1.0 == world_index.y as f32 {
-                                            world_index.y + 1
-                                        } else {
-                                            world_index.y
-                                        },
-                                        z: if intersect_position.z == world_index.z as f32 {
-                                            world_index.z - 1
-                                        } else if intersect_position.z-1.0 == world_index.z as f32 {
-                                            world_index.z + 1
-                                        } else {
-                                            world_index.z
-                                        },
-                                    };
-                                    world.place_at_global_pos(place_index, block_id);
+                            if action == glfw::Action::Release {
+                                if let Some(block_id) = player.inventory.consume_currently_selected() {
+                                    if let Some((intersect_position, world_index)) = dda(&world, &player.camera.position, &player.camera.forward, 6.0) {
+                                        let place_index = Vector3 {
+                                            x: if intersect_position.x == world_index.x as f32 {
+                                                world_index.x - 1
+                                            } else if intersect_position.x-1.0 == world_index.x as f32 {
+                                                world_index.x + 1
+                                            } else {
+                                                world_index.x
+                                            },
+                                            y: if intersect_position.y== world_index.y as f32 {
+                                                world_index.y - 1
+                                            } else if intersect_position.y-1.0 == world_index.y as f32 {
+                                                world_index.y + 1
+                                            } else {
+                                                world_index.y
+                                            },
+                                            z: if intersect_position.z == world_index.z as f32 {
+                                                world_index.z - 1
+                                            } else if intersect_position.z-1.0 == world_index.z as f32 {
+                                                world_index.z + 1
+                                            } else {
+                                                world_index.z
+                                            },
+                                        };
+                                        world.place_at_global_pos(place_index, block_id);
+                                    }
                                 }
-                            }
                             }
                         },
                         _ => {}

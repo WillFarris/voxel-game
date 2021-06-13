@@ -1,4 +1,6 @@
-use crate::block;
+use cgmath::Vector3;
+
+use crate::{block, mesh::Mesh, vertex::Vertex};
 
 pub struct Inventory {
     pub items: [Option<(usize, usize)>; 9],
@@ -30,22 +32,20 @@ impl Inventory {
         }
     }
 
-    //TODO: This deletes 1 more block than it should
     pub fn consume_currently_selected(&mut self) -> Option<usize> {
-        let mut should_delete = false;
-        let mut block_id = 0;
+        let mut should_delete_current = false;
         if let Some((id, quantity)) = &mut self.items[self.selected] {
             *quantity -= 1;
             if *quantity == 0 {
-                should_delete = true;
-                block_id = *id;
+                should_delete_current = true;
             } else {
                 return Some(*id)
             }
         }
-        if should_delete {
+        if should_delete_current {
+            let block_id = self.items[self.selected].unwrap().0;
             self.items[self.selected] = None;
-            return Some(block_id);
+            return Some(block_id)
         }
         None
     }

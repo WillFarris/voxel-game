@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, LinkedList};
 
 use cgmath::{Matrix4, Vector3, Vector2};
 use crate::{block::{self, BLOCKS, MeshType}, mesh::*, meshgen::*, shader::Shader, vectormath::{dot, len, normalize}};
@@ -34,8 +34,9 @@ impl Chunk {
 }
 
 pub struct World<'a> {
-    pub chunks: HashMap<Vector3<isize>, Chunk>,
     seed: u32,
+    pub chunks: HashMap<Vector3<isize>, Chunk>,
+    pub generation_queue: HashMap<Vector3<isize>, LinkedList<(Vector3<usize>, usize)>>,
     noise_offset: Vector2<f64>,
     noise_scale: f64,
     perlin: Perlin,
@@ -47,18 +48,18 @@ pub struct World<'a> {
 
 impl<'a> World<'a> {
     pub fn new(texture: Texture, block_shader: &'a Shader, grass_shader: &'a Shader, leaves_shader: &'a Shader, seed: u32) -> Self {
-        let chunks = HashMap::new();
-        let perlin = Perlin::new();
         let noise_scale = 0.02;
         let noise_offset = Vector2::new(
             1_000_000.0 * rand::random::<f64>() + 3_141_592.0,
             1_000_000.0 * rand::random::<f64>() + 3_141_592.0,
         );
+        let perlin = Perlin::new();
         perlin.set_seed(seed);
 
         let mut world = Self {
-            chunks,
             seed,
+            chunks: HashMap::new(),
+            generation_queue: HashMap::new(),
             noise_offset,
             noise_scale,
             perlin,
@@ -74,6 +75,7 @@ impl<'a> World<'a> {
                 for chunk_z in -chunk_radius..chunk_radius {
                     let chunk_index = Vector3::new(chunk_x, chunk_y, chunk_z);
                     let chunk_data: [[[usize; CHUNK_SIZE]; CHUNK_SIZE]; CHUNK_SIZE] = [[[0; CHUNK_SIZE]; CHUNK_SIZE]; CHUNK_SIZE];
+
                     let mut cur_chunk = Chunk::from_blocks(chunk_data, 16 * chunk_index);
                     
                     world.gen_terrain(&chunk_index, &mut cur_chunk);
@@ -83,11 +85,21 @@ impl<'a> World<'a> {
             }
         }
 
+        let chunks = &mut world.chunks;
+        world.generation_queue.retain( |key, blocks_queue| {
+            if let Some(chunk) = chunks.get_mut(key) {
+                for (index, block_id) in blocks_queue {
+                    chunk.blocks[index.x][index.y][index.z] = *block_id;
+                }
+                return false;
+            }
+            true
+        });
+
         let mut positions = Vec::new();
         for (position, chunk_option) in &world.chunks {
             positions.push(position.clone());
         }
-
         for position in positions {
             world.gen_chunk_mesh(&position);
         }
@@ -110,6 +122,9 @@ impl<'a> World<'a> {
                     if global_y < surface_y {
                         if global_y == surface_y.floor() {
                             chunk.blocks[block_x][block_y][block_z] = 2;
+                            if block_y < CHUNK_SIZE-1 {
+                                chunk.blocks[block_x][block_y+1][block_z] = 12;
+                            }
                         } else if global_y < (7.0 * surface_y/8.0).floor() {
                             chunk.blocks[block_x][block_y][block_z] = 1;
                         } else {
@@ -143,9 +158,11 @@ impl<'a> World<'a> {
     }
 
 
-    pub fn place_tree(&mut self, block_index: Vector3<usize>, chunk: &mut Chunk) {
+    pub fn place_tree(&mut self, index: Vector3<isize>) {
 
-        if block_index.x == 0 || block_index.x == CHUNK_SIZE-1 || block_index.z == 0 || block_index.z == CHUNK_SIZE-1 || block_index.y > 4 {
+        //
+
+        /*if block_index.x == 0 || block_index.x == CHUNK_SIZE-1 || block_index.z == 0 || block_index.z == CHUNK_SIZE-1 || block_index.y > 4 {
             return;
         }
         
@@ -163,7 +180,7 @@ impl<'a> World<'a> {
         chunk.blocks[block_index.x-1][block_index.y+5][block_index.z+1] = 0;
         for y in 1..5 {
             chunk.blocks[block_index.x][block_index.y+y][block_index.z] = 9;
-        }
+        }*/
     }
 
     pub fn chunk_from_block_array(&mut self, chunk_index: Vector3<isize>, blocks: [[[usize; CHUNK_SIZE]; CHUNK_SIZE]; CHUNK_SIZE]) {

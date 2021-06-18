@@ -214,7 +214,7 @@ impl<'a> World<'a> {
         for x in -1..=1 {
             for z in -1..=1 {
                 for y in 3..=5 {
-                    if (x == -1 && z == -1 && y == 5) || (x == 1 && z == 1 && y == 5) || (x == -1 && z == 1 && y == 5) || (x == 1 && z == -1 && y == 5) {
+                    if (x == -1 && z == -1 && y == 5) || (x == 1 && z == 1 && y == 5) || (x == -1 && z == 1 && y == 5) || (x == 1 && z == -1 && y == 5) || (x == 0 && z == 0 && y == 3) {
                         continue;
                     }
                     let (chunk_index, block_index) = World::chunk_and_block_index(&(world_pos + Vector3::new(x, y, z)));

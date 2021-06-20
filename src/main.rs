@@ -50,23 +50,23 @@ fn main() {
     gl::load_with(|symbol| window.get_proc_address(symbol) as *const _);
 
     let block_vertex_shader_path = if cfg!(target_arch = "arm") {
-        "shaders/block_vertex_es.glsl"
+        "shaders/gles/block_vertex_es.glsl"
     } else {
         "shaders/block_vertex.glsl"
     };
     let grass_vertex_shader_path = if cfg!(target_arch = "arm") {
-        "shaders/grass_vertex_es.glsl"
+        "shaders/gles/grass_vertex_es.glsl"
     } else {
         "shaders/grass_vertex.glsl"
     };
     let leaves_vertex_shader_path = if cfg!(target_arch = "arm") {
-        "shaders/leaves_vertex_es.glsl"
+        "shaders/gles/leaves_vertex_es.glsl"
     } else {
         "shaders/leaves_vertex.glsl"
     };
 
     let block_fragment_shader_path = if cfg!(target_arch = "arm") {
-        "shaders/block_fragment_es.glsl"
+        "shaders/gles/block_fragment_es.glsl"
     } else {
         "shaders/block_fragment.glsl"
     };

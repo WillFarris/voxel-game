@@ -75,7 +75,18 @@ fn main() {
     let grass_shader = shader::Shader::new(grass_vertex_shader_path, block_fragment_shader_path);
     let leaves_shader = shader::Shader::new(leaves_vertex_shader_path, block_fragment_shader_path);
     
-    let gui_shader = shader::Shader::new("shaders/gui_vertex.glsl", "shaders/gui_fragment.glsl");
+    let gui_fragment_path = if cfg!(target_arch = "arm") {
+        "shaders/gui_fragment_es.glsl"
+    } else {
+        "shaders/gui_fragment.glsl"
+    };
+    let gui_vertex_path = if cfg!(target_arch = "arm") {
+        "shaders/gui_vertex_es.glsl"
+    } else {
+        "shaders/gui_vertex.glsl"
+    };
+
+    let gui_shader = shader::Shader::new(gui_vertex_path, gui_fragment_path);
 
     //let mut cube1 = cube::Cube::new([-1.0, 5.0, 5.0], [0.9, 0.2, 0.2]);
 

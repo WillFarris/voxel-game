@@ -1,7 +1,5 @@
 #![macro_use]
 
-use std::ffi::CStr;
-
 /// Macro to get c strings from literals without runtime overhead
 /// Literal must not contain any interior nul bytes!
 #[macro_export]

@@ -100,6 +100,12 @@ impl Shader {
         }
     }
 
+    pub fn set_int(&self, name: &CStr, i: i32) {
+        unsafe {
+            gl::Uniform1iv(gl::GetUniformLocation(self.id, name.as_ptr()), 1, &i);
+        }
+    }
+
     pub fn use_program(&self) {
         unsafe {
             gl::UseProgram(self.id);

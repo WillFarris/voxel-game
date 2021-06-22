@@ -17,9 +17,9 @@ pub const BLOCKS: [Block; 14] = [
 
 #[derive(Clone, Copy)]
 pub enum BlockType {
-    Block,
-    Grass,
-    Leaves,
+    Block = 0,
+    Grass = 1,
+    Leaves = 2,
 }
 
 #[derive(Clone, Copy)]

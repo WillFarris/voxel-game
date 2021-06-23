@@ -4,7 +4,7 @@ use std::{ffi::CString, ptr};
 use std::ffi::CStr;
 use std::mem::size_of;
 use crate::offset_of;
-use gl::types::GLsizeiptr;
+use gl::types::{*, self};
 use image::{self, GenericImageView};
 
 #[derive(Clone, Copy)]
@@ -69,9 +69,6 @@ impl Mesh {
             // vertex texture coords
             gl::EnableVertexAttribArray(2);
             gl::VertexAttribPointer(2, 2, gl::FLOAT, gl::FALSE, size, offset_of!(Vertex, tex_coords) as *const c_void);
-            // block type id
-            gl::EnableVertexAttribArray(3);
-            gl::VertexAttribPointer(3, 1, gl::FLOAT, gl::FALSE, size, offset_of!(Vertex, id) as *const c_void);
         }
     }
 

@@ -4,9 +4,10 @@ use cgmath::{Matrix3, Vector3, Vector4};
 
 use crate::world;
 
-pub const _X_VECTOR: Vector3<f32> = Vector3::new(1.0, 0.0, 0.0);
+pub const X_VECTOR: Vector3<f32> = Vector3::new(1.0, 0.0, 0.0);
 pub const Y_VECTOR: Vector3<f32> = Vector3::new(0.0, 1.0, 0.0);
-pub const _Z_VECTOR: Vector3<f32> = Vector3::new(0.0, 0.0, 1.0);
+#[allow(unused)]
+pub const Z_VECTOR: Vector3<f32> = Vector3::new(0.0, 0.0, 1.0);
 
 #[derive(PartialEq)]
 enum Vec3Direction {
@@ -107,7 +108,6 @@ pub fn cross(a: Vector3<f32>, b: Vector3<f32>) -> Vector3<f32> {
     )
 }
 
-#[allow(unused)]
 pub fn dot<T: std::ops::Add<Output = T> + Mul<Output = T>>(u: Vector3<T>, v: Vector3<T>) -> T {
     u.x * v.x + u.y * v.y + u.z * v.z
 }
@@ -169,7 +169,7 @@ pub fn dda(world: &world::World, start: &Vector3<f32>, dir: &Vector3<f32>, max_d
         let mut min_dist = ray_length_1d.x;
         let mut min_dir = Vec3Direction::X;
         if ray_length_1d.y < min_dist { min_dist = ray_length_1d.y; min_dir = Vec3Direction::Y }
-        if ray_length_1d.z < min_dist { /*min_dist = ray_length_1d.z;*/ min_dir = Vec3Direction::Z }
+        if ray_length_1d.z < min_dist { min_dist = ray_length_1d.z; min_dir = Vec3Direction::Z }
 
         if min_dir == Vec3Direction::X {
             map_check.x += step.x;

@@ -1,6 +1,6 @@
 use cgmath::Vector3;
 
-use crate::{block::BLOCKS, camera::Camera, collision::rect_vs_rect, vectormath::{Y_VECTOR, normalize}, world::World};
+use crate::{block::{self, BLOCKS}, camera::Camera, collision::{self, rect_vs_rect}, vectormath::{Y_VECTOR, dda, len, normalize, normalize_inplace}, world::World};
 use crate::inventory::Inventory;
 
 const GRAVITY: Vector3<f32> = Vector3 {x: 0.0, y: -4.0, z: 0.0};

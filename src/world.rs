@@ -1,7 +1,7 @@
 use std::collections::{HashMap, LinkedList};
 
 use cgmath::{Matrix4, Vector3, Vector2};
-use crate::{block::{self, BLOCKS, MeshType}, mesh::*, meshgen::*, shader::Shader};
+use crate::{block::{self, BLOCKS, MeshType}, mesh::*, meshgen::*, shader::Shader, vectormath::{dot, len, normalize}};
 
 use std::ffi::CStr;
 
@@ -34,6 +34,7 @@ impl Chunk {
 }
 
 pub struct World<'a> {
+    seed: u32,
     pub chunks: HashMap<Vector3<isize>, Chunk>,
     pub generation_queue: HashMap<Vector3<isize>, LinkedList<(Vector3<usize>, usize)>>,
     noise_offset: Vector2<f64>,
@@ -56,6 +57,7 @@ impl<'a> World<'a> {
         perlin.set_seed(seed);
 
         let mut world = Self {
+            seed,
             chunks: HashMap::new(),
             generation_queue: HashMap::new(),
             noise_offset,
@@ -77,7 +79,7 @@ impl<'a> World<'a> {
                     let mut cur_chunk = Chunk::from_blocks(chunk_data, 16 * chunk_index);
                     
                     world.gen_terrain(&chunk_index, &mut cur_chunk);
-                    world.gen_caves(&chunk_index, &mut cur_chunk);
+                    //world.gen_caves(&chunk_index, &mut cur_chunk);
                     world.chunks.insert(chunk_index, cur_chunk);
                 }
             }
@@ -95,7 +97,7 @@ impl<'a> World<'a> {
         });
 
         let mut positions = Vec::new();
-        for (position, _) in &world.chunks {
+        for (position, chunk_option) in &world.chunks {
             positions.push(position.clone());
         }
         for position in positions {
@@ -174,7 +176,7 @@ impl<'a> World<'a> {
     }
 
     fn gen_caves(&mut self, chunk_index: &Vector3<isize>, chunk: &mut Chunk) {
-        let noise_scale = 0.05;
+        let noise_scale = 0.1;
         let cutoff = 0.6;
 
         //println!("Digging caves...");
@@ -249,7 +251,7 @@ impl<'a> World<'a> {
         }*/
     }
 
-    pub fn _chunk_from_block_array(&mut self, chunk_index: Vector3<isize>, blocks: [[[usize; CHUNK_SIZE]; CHUNK_SIZE]; CHUNK_SIZE]) {
+    pub fn chunk_from_block_array(&mut self, chunk_index: Vector3<isize>, blocks: [[[usize; CHUNK_SIZE]; CHUNK_SIZE]; CHUNK_SIZE]) {
         let new_chunk = Chunk::from_blocks(blocks, 16 * chunk_index);
         self.chunks.insert(chunk_index, new_chunk);
         self.gen_chunk_mesh(&chunk_index);
@@ -503,7 +505,7 @@ impl<'a> World<'a> {
                         };
 
                         let position = [x as f32, y as f32, z as f32];
-                        let cur_vertices = &mut block_vertices;/*match cur.block_type {
+                        let cur_vertices = match cur.block_type {
                             block::BlockType::Block => {
                                 &mut block_vertices
                             },
@@ -513,12 +515,8 @@ impl<'a> World<'a> {
                             block::BlockType::Leaves => {
                                 &mut leaves_vertices
                             }
-                        }*/;
-                        let block_type = match cur.block_type {
-                            block::BlockType::Block => 0,
-                            block::BlockType::Grass => 1,
-                            block::BlockType::Leaves => 2,
-                        } as gl::types::GLint;
+                            _ => &mut block_vertices,
+                        };
                         match cur.mesh_type {
                             MeshType::Block => {
                                 
@@ -531,7 +529,7 @@ impl<'a> World<'a> {
                                 };
                                 if let Some(adjacent_block) = x_right_adjacent {
                                     if adjacent_block.transparent && adjacent_block.id != cur.id {
-                                        push_face(block_type, &position, 0, cur_vertices, &tex_coords[0]);
+                                        push_face(&position, 0, cur_vertices, &tex_coords[0]);
                                     }
                                 }
 
@@ -544,7 +542,7 @@ impl<'a> World<'a> {
                                 };
                                 if let Some(adjacent_block) = x_left_adjacent {
                                     if adjacent_block.transparent {
-                                        push_face(block_type, &position, 1, cur_vertices, &tex_coords[1]);
+                                        push_face(&position, 1, cur_vertices, &tex_coords[1]);
                                     }
                                 }
 
@@ -558,7 +556,7 @@ impl<'a> World<'a> {
                                 };
                                 if let Some(adjacent_block) = y_top_adjacent {
                                     if adjacent_block.transparent && adjacent_block.id != cur.id {
-                                        push_face(block_type, &position, 2, cur_vertices, &tex_coords[2]);
+                                        push_face(&position, 2, cur_vertices, &tex_coords[2]);
                                     }
                                 }
         
@@ -571,7 +569,7 @@ impl<'a> World<'a> {
                                 };
                                 if let Some(adjacent_block) = y_bottom_adjacent {
                                     if adjacent_block.transparent {
-                                        push_face(block_type, &position, 3, cur_vertices, &tex_coords[3]);
+                                        push_face(&position, 3, cur_vertices, &tex_coords[3]);
                                     }
                                 }
 
@@ -584,7 +582,7 @@ impl<'a> World<'a> {
                                 };
                                 if let Some(adjacent_block) = z_back_adjacent {
                                     if adjacent_block.transparent && adjacent_block.id != cur.id {
-                                        push_face(block_type, &position, 4, cur_vertices, &tex_coords[4]);
+                                        push_face(&position, 4, cur_vertices, &tex_coords[4]);
                                     }
                                 }
 
@@ -598,15 +596,15 @@ impl<'a> World<'a> {
                                 };
                                 if let Some(adjacent_block) = z_front_adjacent {
                                     if adjacent_block.transparent {
-                                        push_face(block_type, &position, 5, cur_vertices, &tex_coords[5]);
+                                        push_face(&position, 5, cur_vertices, &tex_coords[5]);
                                     }
                                 }
                             }
                             MeshType::CrossedPlanes => {
-                                push_face(block_type, &position, 6, cur_vertices, &tex_coords[0]);
-                                push_face(block_type, &position, 7,cur_vertices, &tex_coords[0]);
-                                push_face(block_type, &position, 8, cur_vertices, &tex_coords[0]);
-                                push_face(block_type, &position, 9, cur_vertices, &tex_coords[0]);
+                                push_face(&position, 6, cur_vertices, &tex_coords[0]);
+                                //push_face(&position, 7, &mut transparent_vertices, &tex_coords[0]);
+                                push_face(&position, 8, cur_vertices, &tex_coords[0]);
+                                //push_face(&position, 9, &mut transparent_vertices, &tex_coords[0]);
                             }
                         }
                         

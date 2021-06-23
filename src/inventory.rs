@@ -1,3 +1,7 @@
+use cgmath::Vector3;
+
+use crate::{block, mesh::Mesh, vertex::Vertex};
+
 pub struct Inventory {
     pub items: [Option<(usize, usize)>; 9],
     pub selected: usize,

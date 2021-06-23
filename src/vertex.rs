@@ -7,7 +7,6 @@ pub struct Vertex {
     pub position: Vector3<f32>,
     pub normal: Vector3<f32>,
     pub tex_coords: Vector2<f32>,
-    pub id: i32,
 }
 
 impl Default for Vertex {
@@ -16,7 +15,6 @@ impl Default for Vertex {
             position: Vector3::zero(),
             normal: Vector3::zero(),
             tex_coords: Vector2::zero(),
-            id: 0,
         }
     }
 }

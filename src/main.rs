@@ -14,7 +14,7 @@ mod collision;
 
 use camera::*;
 use cgmath::{Matrix4, Vector2, Vector3};
-use glfw::{Context, CursorMode};
+use glfw::Context;
 use mesh::texture_from_file;
 use vectormath::dda;
 use std::ffi::CStr;
@@ -44,7 +44,6 @@ fn main() {
     window.make_current();
     window.set_key_polling(true);
     window.set_cursor_pos_polling(true);
-    window.set_cursor_mode(CursorMode::Hidden);
     window.set_mouse_button_polling(true);
     window.set_cursor_pos(WIDTH as f64/2.0, HEIGHT as f64/2.0);
 
@@ -101,13 +100,13 @@ fn main() {
     let inventory_texture_id = texture_from_file("gui.png", ".");
     let aspect_ratio = crate::WIDTH as f32 / crate::HEIGHT as f32;
     let gui_verts = Vec::from([   
-        Vertex { position: Vector3::new( -0.5,  -1.0 + (aspect_ratio * 0.120879),  0.0), normal: Vector3::new( 0.0,  0.0, 0.0), tex_coords: Vector2::new(0.0, 0.9140625), id: 0 },
-        Vertex { position: Vector3::new( 0.5, -1.0 + (aspect_ratio * 0.120879), 0.0), normal: Vector3::new( 0.0,  0.0, 0.0), tex_coords: Vector2::new(0.7109375, 0.9140625), id: 0 },
-        Vertex { position: Vector3::new( 0.5,  -1.0, 0.0), normal: Vector3::new( 0.0,  0.0, 0.0), tex_coords: Vector2::new(0.7109375, 1.0), id: 0 },
+        Vertex { position: Vector3::new( -0.5,  -1.0 + (aspect_ratio * 0.120879),  0.0), normal: Vector3::new( 0.0,  0.0, 0.0), tex_coords: Vector2::new(0.0, 0.9140625) },
+        Vertex { position: Vector3::new( 0.5, -1.0 + (aspect_ratio * 0.120879), 0.0), normal: Vector3::new( 0.0,  0.0, 0.0), tex_coords: Vector2::new(0.7109375, 0.9140625) },
+        Vertex { position: Vector3::new( 0.5,  -1.0, 0.0), normal: Vector3::new( 0.0,  0.0, 0.0), tex_coords: Vector2::new(0.7109375, 1.0) },
 
-        Vertex { position: Vector3::new( -0.5, -1.0 + (aspect_ratio * 0.120879),  0.0), normal: Vector3::new( 0.0,  0.0, 0.0), tex_coords: Vector2::new(0.0, 0.9140625), id: 0 },
-        Vertex { position: Vector3::new( 0.5, -1.0, 0.0), normal: Vector3::new( 0.0,  0.0, 0.0), tex_coords: Vector2::new(0.7109375, 1.0), id: 0 },
-        Vertex { position: Vector3::new( -0.5,  -1.0,  0.0), normal: Vector3::new( 0.0,  0.0, 0.0), tex_coords: Vector2::new(0.0, 1.0), id: 0 },
+        Vertex { position: Vector3::new( -0.5, -1.0 + (aspect_ratio * 0.120879),  0.0), normal: Vector3::new( 0.0,  0.0, 0.0), tex_coords: Vector2::new(0.0, 0.9140625) },
+        Vertex { position: Vector3::new( 0.5, -1.0, 0.0), normal: Vector3::new( 0.0,  0.0, 0.0), tex_coords: Vector2::new(0.7109375, 1.0) },
+        Vertex { position: Vector3::new( -0.5,  -1.0,  0.0), normal: Vector3::new( 0.0,  0.0, 0.0), tex_coords: Vector2::new(0.0, 1.0) },
         
     ],);
     let gui_mesh = mesh::Mesh::new(gui_verts, &crate::mesh::Texture { id: inventory_texture_id}, &gui_shader);
@@ -115,29 +114,29 @@ fn main() {
 
 
     let block_icon_verts = Vec::from([
-        Vertex { position: Vector3::new( 1.0, 0.0,  1.0), normal: Vector3::new( 1.0,  0.0, 0.0), tex_coords: Vector2::new(1.0, 0.0), id: 0 },  // Front-bottom-right
-        Vertex { position: Vector3::new( 1.0, 0.0, 0.0), normal: Vector3::new( 1.0,  0.0, 0.0), tex_coords: Vector2::new(0.0, 0.0), id: 0 },   // Back-bottom-right
-        Vertex { position: Vector3::new( 1.0,  1.0,  1.0), normal: Vector3::new( 1.0,  0.0, 0.0), tex_coords: Vector2::new(1.0, 1.0), id: 0 }, // Front-top-right
+        Vertex { position: Vector3::new( 1.0, 0.0,  1.0), normal: Vector3::new( 1.0,  0.0, 0.0), tex_coords: Vector2::new(1.0, 0.0) },  // Front-bottom-right
+        Vertex { position: Vector3::new( 1.0, 0.0, 0.0), normal: Vector3::new( 1.0,  0.0, 0.0), tex_coords: Vector2::new(0.0, 0.0) },   // Back-bottom-right
+        Vertex { position: Vector3::new( 1.0,  1.0,  1.0), normal: Vector3::new( 1.0,  0.0, 0.0), tex_coords: Vector2::new(1.0, 1.0) }, // Front-top-right
     
-        Vertex { position: Vector3::new( 1.0,  1.0,  1.0), normal: Vector3::new( 1.0,  0.0, 0.0), tex_coords: Vector2::new(1.0, 1.0), id: 0 }, // Front-top-right
-        Vertex { position: Vector3::new( 1.0, 0.0, 0.0), normal: Vector3::new( 1.0,  0.0, 0.0), tex_coords: Vector2::new(0.0, 0.0), id: 0 },   // Back-bottom-right
-        Vertex { position: Vector3::new( 1.0,  1.0, 0.0), normal: Vector3::new( 1.0,  0.0, 0.0), tex_coords: Vector2::new(0.0, 0.0), id: 0 },  // Back-top-right
+        Vertex { position: Vector3::new( 1.0,  1.0,  1.0), normal: Vector3::new( 1.0,  0.0, 0.0), tex_coords: Vector2::new(1.0, 1.0) }, // Front-top-right
+        Vertex { position: Vector3::new( 1.0, 0.0, 0.0), normal: Vector3::new( 1.0,  0.0, 0.0), tex_coords: Vector2::new(0.0, 0.0) },   // Back-bottom-right
+        Vertex { position: Vector3::new( 1.0,  1.0, 0.0), normal: Vector3::new( 1.0,  0.0, 0.0), tex_coords: Vector2::new(0.0, 1.0) },  // Back-top-right
 
-        Vertex { position: Vector3::new( 1.0,  1.0,  1.0), normal: Vector3::new( 0.0,  1.0, 0.0), tex_coords: Vector2::new(1.0, 1.0), id: 0 },   // Front-top-right
-        Vertex { position: Vector3::new( 1.0,  1.0, 0.0), normal: Vector3::new( 0.0,  1.0, 0.0), tex_coords: Vector2::new(1.0, 0.0), id: 0 },   // Back-top-right
-        Vertex { position: Vector3::new(0.0,  1.0,  1.0), normal: Vector3::new( 0.0,  1.0, 0.0), tex_coords: Vector2::new(0.0, 0.0), id: 0 },   // Front-top-left
+        Vertex { position: Vector3::new( 1.0,  1.0,  1.0), normal: Vector3::new( 0.0,  1.0, 0.0), tex_coords: Vector2::new(1.0, 1.0) },   // Front-top-right
+        Vertex { position: Vector3::new( 1.0,  1.0, 0.0), normal: Vector3::new( 0.0,  1.0, 0.0), tex_coords: Vector2::new(1.0, 0.0) },   // Back-top-right
+        Vertex { position: Vector3::new(0.0,  1.0,  1.0), normal: Vector3::new( 0.0,  1.0, 0.0), tex_coords: Vector2::new(0.0, 1.0) },   // Front-top-left
     
-        Vertex { position: Vector3::new(0.0,  1.0,  1.0), normal: Vector3::new( 0.0,  1.0, 0.0), tex_coords: Vector2::new(0.0, 0.0), id: 0 },   // Front-top-left
-        Vertex { position: Vector3::new( 1.0,  1.0, 0.0), normal: Vector3::new( 0.0,  1.0, 0.0), tex_coords: Vector2::new(1.0, 0.0), id: 0 },   // Back-top-right
-        Vertex { position: Vector3::new(0.0,  1.0, 0.0), normal: Vector3::new( 0.0,  1.0, 0.0), tex_coords: Vector2::new(0.0, 0.0), id: 0 },   // Back-top-left
+        Vertex { position: Vector3::new(0.0,  1.0,  1.0), normal: Vector3::new( 0.0,  1.0, 0.0), tex_coords: Vector2::new(0.0, 1.0) },   // Front-top-left
+        Vertex { position: Vector3::new( 1.0,  1.0, 0.0), normal: Vector3::new( 0.0,  1.0, 0.0), tex_coords: Vector2::new(1.0, 0.0) },   // Back-top-right
+        Vertex { position: Vector3::new(0.0,  1.0, 0.0), normal: Vector3::new( 0.0,  1.0, 0.0), tex_coords: Vector2::new(0.0, 0.0) },   // Back-top-left
 
-        Vertex { position: Vector3::new( 1.0,  1.0,  1.0), normal: Vector3::new( 0.0,  0.0,  1.0), tex_coords: Vector2::new(1.0, 1.0), id: 0 },   // Front-top-right
-        Vertex { position: Vector3::new(0.0,  1.0,  1.0), normal: Vector3::new( 0.0,  0.0,  1.0), tex_coords: Vector2::new(0.0, 0.0), id: 0 },   // Front-top-left
-        Vertex { position: Vector3::new(0.0, 0.0,  1.0), normal: Vector3::new( 0.0,  0.0,  1.0), tex_coords: Vector2::new(0.0, 0.0), id: 0 },   // Front-bottom-left
+        Vertex { position: Vector3::new( 1.0,  1.0,  1.0), normal: Vector3::new( 0.0,  0.0,  1.0), tex_coords: Vector2::new(1.0, 1.0) },   // Front-top-right
+        Vertex { position: Vector3::new(0.0,  1.0,  1.0), normal: Vector3::new( 0.0,  0.0,  1.0), tex_coords: Vector2::new(0.0, 1.0) },   // Front-top-left
+        Vertex { position: Vector3::new(0.0, 0.0,  1.0), normal: Vector3::new( 0.0,  0.0,  1.0), tex_coords: Vector2::new(0.0, 0.0) },   // Front-bottom-left
     
-        Vertex { position: Vector3::new( 1.0,  1.0,  1.0), normal: Vector3::new( 0.0,  0.0,  1.0), tex_coords: Vector2::new(1.0, 1.0), id: 0 },   // Front-top-right
-        Vertex { position: Vector3::new(0.0, 0.0,  1.0), normal: Vector3::new( 0.0,  0.0,  1.0), tex_coords: Vector2::new(0.0, 0.0), id: 0 },   // Front-bottom-left
-        Vertex { position: Vector3::new( 1.0, 0.0,  1.0), normal: Vector3::new( 0.0,  0.0,  1.0), tex_coords: Vector2::new(1.0, 0.0), id: 0 },   // Front-bottom-right
+        Vertex { position: Vector3::new( 1.0,  1.0,  1.0), normal: Vector3::new( 0.0,  0.0,  1.0), tex_coords: Vector2::new(1.0, 1.0) },   // Front-top-right
+        Vertex { position: Vector3::new(0.0, 0.0,  1.0), normal: Vector3::new( 0.0,  0.0,  1.0), tex_coords: Vector2::new(0.0, 0.0) },   // Front-bottom-left
+        Vertex { position: Vector3::new( 1.0, 0.0,  1.0), normal: Vector3::new( 0.0,  0.0,  1.0), tex_coords: Vector2::new(1.0, 0.0) },   // Front-bottom-right
     ],);
     let block_icon_mesh = mesh::Mesh::new(block_icon_verts, &crate::mesh::Texture { id: terrain_texture_id}, &block_icon_shader);
 
@@ -183,18 +182,18 @@ fn main() {
             block_shader.set_float(c_str!("time"), elapsed_time as f32);
             world.render_solid(player.position, player.camera.forward);
             
-            //grass_shader.use_program();
-            /*grass_shader.set_mat4(c_str!("perspective_matrix"), &projection);
+            grass_shader.use_program();
+            grass_shader.set_mat4(c_str!("perspective_matrix"), &projection);
             grass_shader.set_mat4(c_str!("view_matrix"), &view);
             grass_shader.set_vec3(c_str!("sunlight_direction"), &sunlight_direction);
-            grass_shader.set_float(c_str!("time"), elapsed_time as f32);*/
+            grass_shader.set_float(c_str!("time"), elapsed_time as f32);
             world.render_grass();
 
-            /*leaves_shader.use_program();
+            leaves_shader.use_program();
             leaves_shader.set_mat4(c_str!("perspective_matrix"), &projection);
             leaves_shader.set_mat4(c_str!("view_matrix"), &view);
             leaves_shader.set_vec3(c_str!("sunlight_direction"), &sunlight_direction);
-            leaves_shader.set_float(c_str!("time"), elapsed_time as f32);*/
+            leaves_shader.set_float(c_str!("time"), elapsed_time as f32);
             world.render_leaves();
 
             gui_shader.use_program();

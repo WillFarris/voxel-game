@@ -124,7 +124,10 @@ impl<'a> World<'a> {
                             chunk.blocks[block_x][block_y][block_z] = 2;
                             self.place_ground_foliage(global_x, global_y + 1, global_z);
                         } else if (global_y as f64) < (7.0 * surface_y/8.0).floor() {
-                            chunk.blocks[block_x][block_y][block_z] = 1;
+                            match rand::random::<usize>()%100 {
+                                0 => chunk.blocks[block_x][block_y][block_z] = 14,
+                                _ => chunk.blocks[block_x][block_y][block_z] = 1,
+                            }                            
                         } else {
                             chunk.blocks[block_x][block_y][block_z] = 3;
                         }
@@ -195,7 +198,6 @@ impl<'a> World<'a> {
             }
         }
     }
-
 
     pub fn place_tree(&mut self, world_pos: Vector3<isize>) {
 
